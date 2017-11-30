@@ -9,8 +9,10 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"database/sql"
 	"time"
 
+	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/telegram-bot-api.v4"
 )
 
@@ -26,6 +28,7 @@ type Cinnabot struct {
 	log  *log.Logger
 	fmap FuncMap
 	keys config
+	db *sql.DB
 }
 
 // Configuration struct for setting up Cinnabot
@@ -92,6 +95,8 @@ func InitCinnabot(configJSON []byte, lg *log.Logger) *Cinnabot {
 
 	cb := &Cinnabot{Name: cfg.Name, bot: bot, log: lg, keys: cfg}
 	cb.fmap = cb.getDefaultFuncMap()
+	db, _ := sql.Open("sqlite3", "./foo.db") //Did not handle error
+	cb.db = db
 
 	return cb
 }
@@ -123,6 +128,21 @@ func (cb *Cinnabot) AddFunction(command string, resp ResponseFunc) error {
 
 // Router routes Telegram messages to the appropriate response functions.
 func (cb *Cinnabot) Router(msg tgbotapi.Message) {
+	//Database addition
+	//stmtString := fmt.Sprintf("INSERT INTO Data(MessageID Date FirstName LastName UserID Username Message) values(%x, %x, %s, %s, %x, %s, %s)",
+	//	msg.MessageID, msg.Date, msg.From.FirstName, msg.From.LastName, msg.From.ID, msg.From.UserName, msg.Text)
+	newStmt := "DELETE FROM Data"
+	newStmt.Exec()
+	sql_additem := `INSERT INTO Data(MessageID, Date, FirstName, LastName, UserID, Username, Message) values(?,?,?,?,?,?,?)`
+
+	stmt, err1 := cb.db.Prepare(sql_additem)
+	if (err1 != nil) {
+		log.Fatalf("Error in preparing database statement. %s", err1)
+	}
+	_,err2 := stmt.Exec(msg.MessageID, msg.Date, msg.From.FirstName, msg.From.LastName, msg.From.ID, msg.From.UserName, msg.Text)
+	if (err2 != nil) {
+		log.Fatalf("Error in executing database statement")
+	}
 	// Don't respond to forwarded commands
 	if msg.ForwardFrom != nil {
 		return
