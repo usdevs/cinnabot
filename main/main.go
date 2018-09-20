@@ -6,8 +6,8 @@ import (
 	"os"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/varunpatro/cinnabot"
-	"github.com/varunpatro/cinnabot/model"
+	"github.com/swampertx/cinnabot"
+	"github.com/swampertx/cinnabot/model"
 )
 
 func main() {

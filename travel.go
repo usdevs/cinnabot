@@ -120,8 +120,9 @@ type ServiceResult struct {
 }
 
 type Shuttle struct {
-	ArrivalTime string `json:"arrivalTime"`
-	Name        string `json:"name"`
+	ArrivalTime     string `json:"arrivalTime"`
+	NextArrivalTime string `json:"nextArrivalTime`
+	Name            string `json:"name"`
 }
 
 //NUSBus retrieves the next timing for NUS Shuttle buses
@@ -205,7 +206,8 @@ func makeNUSHeap(loc tgbotapi.Location) BusStopHeap {
 }
 
 func getBusTimings(code string) string {
-	returnMessage := "*" + code + "*\n"
+	returnMessage := "🤖: Here are the bus timings\n\n"
+	returnMessage += "*" + code + "*\n"
 	resp, _ := http.Get("https://nextbus.comfortdelgro.com.sg/eventservice.svc/Shuttleservice?busstopname=" + code)
 
 	responseData, err := ioutil.ReadAll(resp.Body)
@@ -218,16 +220,19 @@ func getBusTimings(code string) string {
 	}
 	for j := 0; j < len(bt.Result.Shuttles); j++ {
 		arrivalTime := bt.Result.Shuttles[j].ArrivalTime
+		nextArrivalTime := bt.Result.Shuttles[j].NextArrivalTime
+		// since we are doing 2 timings, not needed
+		/*
+			if arrivalTime == "-" {
+				returnMessage += "🛑" + bt.Result.Shuttles[j].Name + " : - mins\n"
+				continue
+			} else if arrivalTime == "Arr" {
+				returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + "\n"
+				continue
+			}
+		*/
 
-		if arrivalTime == "-" {
-			returnMessage += "🛑" + bt.Result.Shuttles[j].Name + " : - mins\n"
-			continue
-		} else if arrivalTime == "Arr" {
-			returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + "\n"
-			continue
-		}
-
-		returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + " mins\n"
+		returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + ", " + nextArrivalTime + " mins\n"
 	}
 	return returnMessage
 }
