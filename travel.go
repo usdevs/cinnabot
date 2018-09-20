@@ -149,6 +149,7 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 
 	//Default loc: Cinnamon
 	loc := &tgbotapi.Location{Latitude: 1.306671, Longitude: 103.773556}
+	robotSays := "🤖: Here are the bus timings\n\n"
 
 	if msg.Location != nil {
 		loc = msg.Location
@@ -158,34 +159,34 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		cb.SendTextMessage(int(msg.Chat.ID), responseString)
 		return
 	} else if msg.Args[0] == "utown" {
-		cb.SendTextMessage(int(msg.Chat.ID), getBusTimings("UTOWN"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("UTOWN"))
 		return
 	} else if msg.Args[0] == "science" {
-		cb.SendTextMessage(int(msg.Chat.ID), getBusTimings("S17")+"\n\n"+getBusTimings("LT29"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("S17")+"\n\n"+getBusTimings("LT29"))
 		return
 	} else if msg.Args[0] == "kr-mrt" {
-		cb.SendTextMessage(int(msg.Chat.ID), getBusTimings("KR-MRT-OPP")+"\n\n"+getBusTimings("KR-MRT"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("KR-MRT-OPP")+"\n\n"+getBusTimings("KR-MRT"))
 		return
 	} else if msg.Args[0] == "mpsh" {
-		cb.SendTextMessage(int(msg.Chat.ID), getBusTimings("STAFFCLUB")+"\n\n"+getBusTimings("STAFFCLUB-OPP"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("STAFFCLUB")+"\n\n"+getBusTimings("STAFFCLUB-OPP"))
 		return
 	} else if msg.Args[0] == "arts" {
-		cb.SendTextMessage(int(msg.Chat.ID), getBusTimings("LT13-OPP")+"\n\n"+getBusTimings("LT13")+"\n\n"+getBusTimings("AS7"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("LT13-OPP")+"\n\n"+getBusTimings("LT13")+"\n\n"+getBusTimings("AS7"))
 		return
 	} else if msg.Args[0] == "yih/engin" {
-		cb.SendTextMessage(int(msg.Chat.ID), getBusTimings("YIH-OPP")+"\n\n"+getBusTimings("YIH")+"\n\n"+getBusTimings("MUSEUM")+"\n\n"+getBusTimings("RAFFLES"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("YIH-OPP")+"\n\n"+getBusTimings("YIH")+"\n\n"+getBusTimings("MUSEUM")+"\n\n"+getBusTimings("RAFFLES"))
 		return
 	} else if msg.Args[0] == "comp" {
-		cb.SendTextMessage(int(msg.Chat.ID), getBusTimings("COM2"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("COM2"))
 		return
 	} else if msg.Args[0] == "biz" {
-		cb.SendTextMessage(int(msg.Chat.ID), getBusTimings("HSSML-OPP")+"\n\n"+getBusTimings("BIZ2")+"\n\n"+getBusTimings("NUSS-OPP"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("HSSML-OPP")+"\n\n"+getBusTimings("BIZ2")+"\n\n"+getBusTimings("NUSS-OPP"))
 		return
 	} else if msg.Args[0] == "cenlib" {
-		cb.SendTextMessage(int(msg.Chat.ID), getBusTimings("COMCEN")+"\n\n"+getBusTimings("CENLIB"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("COMCEN")+"\n\n"+getBusTimings("CENLIB"))
 		return
 	} else if msg.Args[0] == "law" {
-		cb.SendTextMessage(int(msg.Chat.ID), getBusTimings("BUKITTIMAH-BTC2"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("BUKITTIMAH-BTC2"))
 		return
 	}
 }
@@ -205,9 +206,8 @@ func makeNUSHeap(loc tgbotapi.Location) BusStopHeap {
 	return BSH
 }
 
-func getBusTimings(code string) string {
-	returnMessage := "🤖: Here are the bus timings\n\n"
-	returnMessage += "*" + code + "*\n"
+func getBusTimings(code string) string { // for location buttons
+	returnMessage := "*" + code + "*\n"
 	resp, _ := http.Get("https://nextbus.comfortdelgro.com.sg/eventservice.svc/Shuttleservice?busstopname=" + code)
 
 	responseData, err := ioutil.ReadAll(resp.Body)
@@ -218,26 +218,26 @@ func getBusTimings(code string) string {
 	if err := json.Unmarshal(responseData, &bt); err != nil {
 		log.Print(err)
 	}
+
 	for j := 0; j < len(bt.Result.Shuttles); j++ {
 		arrivalTime := bt.Result.Shuttles[j].ArrivalTime
 		nextArrivalTime := bt.Result.Shuttles[j].NextArrivalTime
-		// since we are doing 2 timings, not needed
-		/*
-			if arrivalTime == "-" {
-				returnMessage += "🛑" + bt.Result.Shuttles[j].Name + " : - mins\n"
-				continue
-			} else if arrivalTime == "Arr" {
-				returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + "\n"
-				continue
-			}
-		*/
 
-		returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + ", " + nextArrivalTime + " mins\n"
+		if arrivalTime == "-" {
+			returnMessage += "🛑" + bt.Result.Shuttles[j].Name + " : - mins\n"
+			continue
+		} else if arrivalTime == "1" {
+			returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + " min, " + nextArrivalTime + " mins\n"
+		} else if arrivalTime == "Arr" {
+			returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + ", " + nextArrivalTime + " mins\n"
+		} else {
+			returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + " mins, " + nextArrivalTime + " mins\n"
+		}
 	}
 	return returnMessage
 }
 
-func nusBusTimingResponse(BSH *BusStopHeap) string {
+func nusBusTimingResponse(BSH *BusStopHeap) string { // for location-based query
 	returnMessage := "🤖: Here are the bus timings\n\n"
 	for i := 0; i < 3; i++ {
 
@@ -284,17 +284,20 @@ func nusBusTimingResponse(BSH *BusStopHeap) string {
 
 		for j := 0; j < len(bt.Result.Shuttles); j++ {
 			arrivalTime := bt.Result.Shuttles[j].ArrivalTime
+			nextArrivalTime := bt.Result.Shuttles[j].NextArrivalTime
 
 			if arrivalTime == "-" {
 				returnMessage += "🛑" + bt.Result.Shuttles[j].Name + " : - mins\n"
 				continue
+			} else if arrivalTime == "1" {
+				returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + " min, " + nextArrivalTime + " mins\n"
 			} else if arrivalTime == "Arr" {
-				returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + "\n"
-				continue
+				returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + ", " + nextArrivalTime + " mins\n"
+			} else {
+				returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + " mins, " + nextArrivalTime + " mins\n"
 			}
-
-			returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + " mins\n"
 		}
+
 		returnMessage += "\n"
 	}
 	return returnMessage
