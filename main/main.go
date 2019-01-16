@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	".."
-	"../model"
+	"cinnabot/model"
+	"cinnabot"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 

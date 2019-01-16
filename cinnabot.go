@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/patrickmn/go-cache"
-	"github.com/varunpatro/cinnabot/model"
+	"cinnabot/model"
 	"gopkg.in/telegram-bot-api.v4"
 )
 

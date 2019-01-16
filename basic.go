@@ -11,8 +11,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"./model"
-
+	"cinnabot/model"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/patrickmn/go-cache"
 	"gopkg.in/telegram-bot-api.v4"
@@ -105,7 +104,7 @@ func (cb *Cinnabot) Help(msg *message) {
 
 // About returns a link to Cinnabot's source code.
 func (cb *Cinnabot) About(msg *message) {
-	cb.SendTextMessage(int(msg.Chat.ID), "Touch me: https://github.com/varunpatro/Cinnabot")
+	cb.SendTextMessage(int(msg.Chat.ID), "Touch me: https://github.com/pengnam/Cinnabot")
 }
 
 //Link returns useful resources
