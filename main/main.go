@@ -30,6 +30,7 @@ func main() {
 	cb.AddFunction("/start", cb.Start)
 	cb.AddFunction("/about", cb.About)
 	cb.AddFunction("/help", cb.Help)
+	cb.AddFunction("/stats", cb.GetStats)
 
 	cb.AddFunction("/resources", cb.Resources)
 	cb.AddFunction("/publicbus", cb.BusTimings)
