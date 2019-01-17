@@ -1,12 +1,15 @@
-node_modules/
-private/
-broadcast_logs/
-logs/
-coverage/
-
-bcast.txt
+# IDE/Editor
+out/
+.idea/
 *.swp
-*.db
-*.map
-*.log
+
+# Tags
 *.tags*
+
+# Logs
+*.log
+
+# Misc
+*.db
+config.json
+cinnanot.db-journal
