@@ -3,28 +3,62 @@ package cinnabot
 import (
 	"testing"
 
-	"gopkg.in/telegram-bot-api.v4"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
-func TestSpaces(t *testing.T) {
+// makeExpectedMessage returns MessageConfig with settings matching those sent by cinnabot
+func makeExpectedMessage(chatID int64, text string) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(chatID, text)
+
+	//match settings of message sent by bot
+	msg.ReplyMarkup = tgbotapi.ReplyKeyboardRemove{RemoveKeyboard: true, Selective: true}
+	msg.ParseMode = "Markdown"
+	return msg
+}
+
+func TestGetOnDate(t *testing.T) {
 	mb := mockBot{}
 	cb := Cinnabot{
 		bot: &mb,
 	}
-
-	mockMsg2 := message{
-		Args: []string{"29/05/16"},
+	mockMsg1 := message{
+		Args: []string{"19/11/18"},
 		Message: &tgbotapi.Message{
 			MessageID: 1,
 			From: &tgbotapi.User{
 				ID:        999,
-				FirstName: "test_first_name_user",
+				FirstName: "test_user_first_name",
 			},
 		},
 	}
 
-	expectedMsgStr := "Displaying bookings on Sun, 29 May 2016:\n\n=======================\nTHEME ROOM 1\n=======================\nAbhi Sujit Parikh (Theme Room closed for SEAM/AUS/FOP Activities)\n12:01AM to 11:59PM, Sun, 29 May 2016\n\n\n=======================\nTHEME ROOM 2\n=======================\n[No bookings recorded]\n\n\n=======================\nCHUA THIAN POH HALL\n=======================\n[No bookings recorded]\n\n\n=======================\nAMPHITHEATRE\n=======================\n[No bookings recorded]\n\n\n=======================\nCHATTERBOX\n=======================\n[No bookings recorded]"
-	expectedMsg := tgbotapi.NewMessage(999, expectedMsgStr)
+	expectedMsgStr1 := "Displaying bookings on Mon 19 Nov 2018:\n\n" +
+		"=======================\nChatterbox\n=======================\nIntersection of Tradition & Technology: Japan Info Session\n07:00PM to 08:00PM, Mon 19 Nov 2018\n\nSem 2 Elections Open Discussion\n08:00PM to 10:00PM, Mon 19 Nov 2018\n\n" +
+		"=======================\nUSP Master's Common\n=======================\n\"Owning Shakespeare: Scholars vs Actors.\" by Professor Michael Dobson\n06:30PM to 09:00PM, Mon 19 Nov 2018\n\n"
+
+	expectedMsg1 := makeExpectedMessage(999, expectedMsgStr1)
+
+	mb.On("Send", expectedMsg1).Return(nil)
+	cb.Spaces(&mockMsg1)
+}
+
+func TestGetNoEvents(t *testing.T) {
+	mb := mockBot{}
+	cb := Cinnabot{
+		bot: &mb,
+	}
+	mockMsg := message{
+		Args: []string{"23/11/18"},
+		Message: &tgbotapi.Message{
+			MessageID: 1,
+			From: &tgbotapi.User{
+				ID:        999,
+				FirstName: "test_user_first_name",
+			},
+		},
+	}
+	expectedMsgStr := "Displaying bookings on Fri 23 Nov 2018:\n\n[No bookings recorded]"
+	expectedMsg := makeExpectedMessage(999, expectedMsgStr)
 	mb.On("Send", expectedMsg).Return(nil)
-	cb.Spaces(&mockMsg2)
+	cb.Spaces(&mockMsg)
 }
