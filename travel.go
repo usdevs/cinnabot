@@ -14,21 +14,26 @@ import (
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
-//Structs for BusTiming
+// BusTimes :
+// Services - An array of Services
 type BusTimes struct {
 	Services []Service `json:"Services"`
 }
 
+// Service : An incoming bus.
 type Service struct {
 	ServiceNum string  `json:"ServiceNo"`
 	Next       NextBus `json:"NextBus"`
+	Next2      NextBus `json:"NextBus2"`
+	Next3      NextBus `json:"NextBus3"`
 }
 
+// NextBus : has EstimatedArrival, time at which the bus is expected to arrive
 type NextBus struct {
 	EstimatedArrival string `json:"EstimatedArrival"`
 }
 
-//BusTimings checks the bus timings based on given location
+// BusTimings checks the bus timings based on given location
 func (cb *Cinnabot) BusTimings(msg *message) {
 	if len(msg.Args) == 0 || !cb.CheckArgCmdPair("/publicbus", msg.Args) {
 		opt1 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Cinnamon"))
@@ -98,13 +103,29 @@ func busTimingResponse(BSH *BusStopHeap) string {
 		if err := json.Unmarshal(responseData, &bt); err != nil {
 			log.Print(err)
 		}
+
+		// iteratively add message about each bus service at the buststop
 		for j := 0; j < len(bt.Services); j++ {
 			arrivalTime := bt.Services[j].Next.EstimatedArrival
+			arrivalTime2 := bt.Services[j].Next2.EstimatedArrival
 
 			layout := "2006-01-02T15:04:05-07:00"
 			t, _ := time.Parse(layout, arrivalTime)
+			t2, _ := time.Parse(layout, arrivalTime2)
 			duration := int(t.Sub(time.Now()).Minutes())
-			returnMessage += "🚍Bus " + bt.Services[j].ServiceNum + " : " + strconv.Itoa(duration+1) + " minutes\n"
+
+			durStr := strconv.Itoa(duration)
+			durStr2 := strconv.Itoa(int(t2.Sub(time.Now()).Minutes()))
+
+			if duration < 0 { // no bus
+				returnMessage += "🛑Bus" + bt.Services[j].ServiceNum + " : - mins\n"
+			} else if duration == 1 { // singular noun
+				returnMessage += "🚍" + bt.Services[j].ServiceNum + " : " + durStr + " min, " + durStr2 + " mins\n"
+			} else if duration == 0 { // arriving
+				returnMessage += "🚍" + bt.Services[j].ServiceNum + " : Arr, " + durStr2 + " mins\n"
+			} else {
+				returnMessage += "🚍" + bt.Services[j].ServiceNum + " : " + durStr + " mins, " + durStr2 + " mins\n"
+			}
 		}
 		returnMessage += "\n"
 	}
