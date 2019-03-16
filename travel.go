@@ -162,7 +162,7 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("UTOWN"))
 		return
 	} else if msg.Args[0] == "science" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("S17")+"\n\n"+getBusTimings("LT29"))
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("S17")+"\n\n"+getBusTimings("LT27"))
 		return
 	} else if msg.Args[0] == "kr-mrt" {
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("KR-MRT-OPP")+"\n\n"+getBusTimings("KR-MRT"))
