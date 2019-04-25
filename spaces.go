@@ -1,126 +1,397 @@
 package cinnabot
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"sort"
+	"strings"
 	"time"
 )
 
-// An Event is a single booking of a location.
+const GREATER_THAN = "GREATER_THAN" //for firestore queries (use with makeQuery)
+
+// PARSING AND QUERYING:
+
+// makeQuery returns a string to be used as the request body of a firestore query
+// jsonValue must be either a jsonTime or jsonString
+// see https://developers.google.com/apis-explorer/#search/firestore/firestore/v1beta1/firestore.projects.databases.documents.runQuery and https://cloud.google.com/firestore/docs/query-data/queries for details
+func makeQuery(fieldName string, op string, jsonValue interface{}) string {
+	formatString := `
+	{
+	"structuredQuery": {
+		"where": {
+			"fieldFilter": {
+				"field": { "fieldPath": "%s" },
+				"op": "%s" ,
+				"value": %s
+			}
+		},
+		"from": [ {"collectionId": "events"} ]
+	}
+	}
+	`
+
+	valueAsJson, _ := json.Marshal(jsonValue)
+	return fmt.Sprintf(formatString, fieldName, op, string(valueAsJson))
+}
+
+// A query will return a list of objects like the one below (some fields omitted for berevity).
+// See https://developers.google.com/apis-explorer/#search/firestore/firestore/v1beta1/firestore.projects.databases.documents.runQuery
+/*
+{"document": {
+    "name": "projects/usc-website-206715/databases/(default)/documents/events/FEHpJv0xavSNCEhqE7MS",
+    "fields": {
+      "name": {"stringValue": "Mass Check-In"},
+      "venueName": {"stringValue": "Chatterbox" },
+      "fullDay": {"booleanValue": true },
+      "venue": {"stringValue": "V4TTAgG9fe4bjSm4Vl3M"},
+      "endDate": {"timestampValue": "2019-01-16T15:30:00Z"},
+      "startDate": {"timestampValue": "2019-01-15T16:00:00Z"}
+    },
+    "createTime": "2018-11-08T09:54:34.250175Z",
+    "updateTime": "2018-11-08T09:54:34.250175Z"
+  },
+  "readTime": "2018-12-19T08:47:02.232588Z"}
+*/
+
+// jsonString is a wrapper for string values returned by firestore/used in firestore queries which use the format {"stringValue" : "acutal string"}
+type jsonString string
+
+// jsonTime is a wrapper for timestamps returned from firestore/ used in firestore queries which use the format {"timestampValue": yyyy-mm-ddThh:mm:ssZ}
+type jsonTime time.Time
+
+type rawEventFields struct {
+	Name  jsonString `json:"name"`
+	Venue jsonString `json:"venueName"`
+	Start jsonTime   `json:"startDate"`
+	End   jsonTime   `json:"endDate"`
+}
+
+type rawEvent struct {
+	Fields rawEventFields `json:"fields"`
+}
+
+// queryDocument represents 1 firestore document (for 1 event). A query returns []eventsQueryDocument
+type queryDocument struct {
+	RawEvent rawEvent `json:"document"`
+}
+
+func (js *jsonString) UnmarshalJSON(data []byte) error {
+	var rawString struct {
+		Val string `json:"stringValue"`
+	}
+
+	jsonErr := json.Unmarshal(data, &rawString)
+	*js = jsonString(rawString.Val)
+	return jsonErr
+}
+
+func (js jsonString) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Val string `json:"stringValue"`
+	}{string(js)})
+}
+
+func (jt *jsonTime) UnmarshalJSON(data []byte) error {
+	var rawString struct {
+		Val string `json:"timestampValue"`
+	}
+	if jsonErr := json.Unmarshal(data, &rawString); jsonErr != nil {
+		return jsonErr
+	}
+	time, timeErr := time.Parse("2006-01-02T15:04:05Z", rawString.Val)
+
+	*jt = jsonTime(time)
+	return timeErr
+}
+
+func (jt jsonTime) MarshalJSON() ([]byte, error) {
+	timeString := time.Time(jt).Format("2006-01-02T15:04:05Z")
+	return json.Marshal(struct {
+		Val string `json:"timestampValue"`
+	}{timeString})
+}
+
+// event converts rawEventFields into an Event
+func (jef rawEventFields) event() Event {
+	return Event{string(jef.Name), string(jef.Venue), time.Time(jef.Start), time.Time(jef.End)}
+}
+
+// SORTING AND FILTERING:
+
+// Event represents a booking
+// to add other fields, modify: Event, rawEventFields and rawEventFields.event()
 type Event struct {
-	Type   string  `json:"__type"`
-	ID     float64 `json:"id"`
-	Title  string  `json:"title"`
-	Start  string  `json:"start"`
-	End    string  `json:"end"`
-	AllDay bool    `json:"allDay"`
-	Color  string  `json:"colour"`
+	Name  string
+	Venue string
+	Start time.Time
+	End   time.Time
 }
 
-//String constants
-const (
-	TR1     = "THEME ROOM 1"
-	TR2     = "THEME ROOM 2"
-	CTPH    = "CHUA THIAN POH HALL"
-	AMPH    = "AMPHITHEATRE"
-	CHATTER = "CHATTERBOX"
-)
-
-// Used ONLY for Unmarshalling. Has an additional annoying layer "d" inside which can be abstracted away.
-type rawSpace struct {
-	D []Event `json:"d"`
-}
-
-// Space stores a set of Events, all belonging to the same location ("Space"), such as TR1 or CTPH.
+// Space represents a list of Events at the same venue
 type Space []Event
 
-// Spaces contains all info about Spaces. Use spaces.Restrict(...) to select a subset to be displayed.
-//type Spaces []Space
-
+// Spaces is a list of spaces
 type Spaces []Space
 
-// ByStartDate implements sort.Interface for Space based on the space[i].Start field
-type ByStartDate Space
+// byStartDate implements sort.Interface for a Events in a Space based on space[i].Start field
+type byStartDate Space
 
-func (space ByStartDate) Len() int      { return len(space) }
-func (space ByStartDate) Swap(i, j int) { space[i], space[j] = space[j], space[i] }
-func (space ByStartDate) Less(i, j int) bool {
-	return ParseJSONDate(space[i].Start).Before(ParseJSONDate(space[j].Start))
-}
+// used with filter functions
+type eventPredicate func(Event) bool
 
-// SortByStartDate returns a new Space whose Events are sorted in chronological order.
-func (space Space) sortByStartDate() Space {
-	sort.Sort(ByStartDate(space))
-	return space
-}
+// getSpaces returns the Events (as Spaces) from firestore which match the query (made using makeQuery)
+func getSpaces(query string) Spaces {
 
-// ScanRawSpace requests data for a single Space from nususc.com
-func scanRawSpace(rawSpacePointer *rawSpace, facilityID int) {
+	url := "https://firestore.googleapis.com/v1beta1/projects/usc-website-206715/databases/(default)/documents:runQuery?fields=document" //do not return createTime,updateTime and readTime
 
-	spacesURL := "http://www.nususc.com/USCWebsiteInformationAPI.asmx/GetSpacesBookingRecord"
-	//data to send in body
-	requestBody := []byte(fmt.Sprintf("{ \"facilityID\": \"%d\" }", facilityID))
+	spaces := make(Spaces, 0)
 
-	//Send http request and receive response
-	client := http.Client{}
-	request, requestErr := http.NewRequest("POST",
-		spacesURL,
-		bytes.NewBuffer(requestBody))
-	if requestErr != nil {
-		log.Fatal("Error in spaces.go while creating HTTP request")
-		return
+	response, responseErr := http.Post(url, "application/json", strings.NewReader(query))
+	if responseErr != nil {
+		log.Print("Error in spaces.go while receiving HTTP response")
+		return spaces
 	}
-	request.Header.Set("Content-Type", "application/json")
+	defer response.Body.Close()
 
-	response, responseError := client.Do(request)
-	if responseError != nil {
-		log.Fatal("Error in spaces.go while receiving HTTP response")
-		return
+	rawData, rawDataErr := ioutil.ReadAll(response.Body)
+	if rawDataErr != nil {
+		log.Print("Error in spaces.go while reading HTTP response body")
+		return spaces
 	}
 
-	defer response.Body.Close() //Close buffer
-
-	//Get raw json data
-	rawData, rawDataError := ioutil.ReadAll(response.Body)
-	if rawDataError != nil {
-		log.Fatal("Error in spaces.go while reading HTTP response body")
-		return
+	var queryDocs []queryDocument
+	if jsonErr := json.Unmarshal(rawData, &queryDocs); jsonErr != nil {
+		log.Print("error in spaces.go while parsing JSON")
+		return spaces
 	}
 
-	//Unmarshal json data
-	json.Unmarshal(rawData, rawSpacePointer)
-}
-
-// GetSpace obtains Space information for a given space, as identified by its facilityID. (cf. SpaceName(facilityID))
-func getSpace(facilityID int) Space {
-	rawSpace := rawSpace{}
-	scanRawSpace(&rawSpace, facilityID)
-	var space Space = rawSpace.D
-	return space
-}
-
-// GetSpaces obtains all spaces booking info from nususc.com/Spaces.aspx
-func getSpaces() Spaces {
-	spaces := Spaces{}
-	for i := 0; i < 6; i++ {
-		spaces = append(spaces, (getSpace(i + 1)).sortByStartDate())
+	for _, doc := range queryDocs {
+		spaces.addEvent(doc.RawEvent.Fields.event())
 	}
+
 	return spaces
 }
 
-// ParseJSONDate parses date from format used in nususc.com's API into a time.Time object
-func ParseJSONDate(date string) time.Time {
-	format := "2006-01-02T15:04:05"
-	t, err := time.Parse(format, date)
-	if err != nil {
-		log.Fatal(fmt.Sprintf("Error in spaces.go while parsing %s as a JSON date", date))
+// getSpacesAfter returns the Events (as Spaces) whose endDate is after the specified date
+func getSpacesAfter(date time.Time) Spaces {
+	query := makeQuery("endDate", GREATER_THAN, jsonTime(date))
+	return getSpaces(query)
+}
+
+// getName returns the name of the Space (ie. venue). It is assumed all events have been correctly added to the Space.
+// If a Space has no Events, then an empty string is returned.
+func (space Space) getName() string {
+	if len(space) > 0 {
+		return space[0].Venue
 	}
-	return t
+
+	return ""
+
+}
+
+// addEvent adds an Event to a Space. Does not check whether the event to be added has the same venue as the other events in that Space.
+func (space *Space) addEvent(event Event) {
+	*space = append(*space, event)
+}
+
+// addEvent adds an Event to the appropriate Space, if it exists. Otherwise, a new Space is created.
+func (spaces *Spaces) addEvent(event Event) {
+	for i, space := range *spaces {
+		if space.getName() == event.Venue {
+			(*spaces)[i].addEvent(event)
+			return
+		}
+	}
+
+	// space not created yet
+	// create new space
+	space := make([]Event, 1)
+	space[0] = event
+	*spaces = append(*spaces, space)
+}
+
+func (events byStartDate) Len() int           { return len(events) }
+func (events byStartDate) Swap(i, j int)      { events[i], events[j] = events[j], events[i] }
+func (events byStartDate) Less(i, j int) bool { return events[i].Start.Before(events[j].Start) }
+
+// sortByStartDate returns a new Space sorted in ascending order by Event.Start
+func (space Space) sortByStartDate() Space {
+	sort.Sort(byStartDate(space))
+	return space
+}
+
+func (spaces Spaces) sortByStartDate() Spaces {
+	sortedSpaces := make(Spaces, len(spaces))
+	for i, space := range spaces {
+		sortedSpaces[i] = space.sortByStartDate()
+	}
+	return sortedSpaces
+}
+
+// filter returns a new Space with only Events which satisfy the predicate.
+func (space Space) filter(predicate eventPredicate) Space {
+	filteredEvents := make(Space, 0, len(space))
+	for _, event := range space {
+		if predicate(event) {
+			filteredEvents = append(filteredEvents, event)
+		}
+	}
+	return filteredEvents
+}
+
+// filter returns a new Spaces with only Events which satisfy the predicate
+func (spaces Spaces) filter(predicate eventPredicate) Spaces {
+	filteredSpaces := make(Spaces, 0, len(spaces))
+	for _, space := range spaces {
+		filteredSpace := space.filter(predicate)
+		//do not add spaces with no events
+		if len(filteredSpace) > 0 {
+			filteredSpaces = append(filteredSpaces, filteredSpace)
+		}
+	}
+	return filteredSpaces
+}
+
+// eventBetween returns true if an event occurs between the 2 times given
+func eventBetween(firstDate, lastDate time.Time) eventPredicate {
+	return func(e Event) bool {
+		if e.Start.Before(firstDate) {
+			return e.End.After(firstDate)
+		}
+		return e.Start.Before(lastDate)
+	}
+}
+
+func eventDuring(date time.Time) eventPredicate {
+	return func(e Event) bool {
+		return (e.Start.Before(date) && e.End.After(date)) || e.Start.Equal(date)
+	}
+}
+
+func eventOnDay(date time.Time) eventPredicate {
+	return eventBetween(startOfDay(date), endOfDay(date))
+}
+
+// eventBetweenDays returns true if an event occurs between the start of the first day and the end of the last day
+func eventBetweenDays(firstDate, lastDate time.Time) eventPredicate {
+	return eventBetween(startOfDay(firstDate), endOfDay(lastDate))
+}
+
+// startOfDay returns a new time.Time with the time set to 00:00
+func startOfDay(date time.Time) time.Time {
+	return time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+}
+
+// endOfDay returns the next day 00:00
+func endOfDay(date time.Time) time.Time {
+	return startOfDay(date.AddDate(0, 0, 1))
+}
+
+// DISPLAYING:
+
+// FormatDate formats a time.Time into date in a standardised format
+func FormatDate(t time.Time) string {
+	return t.Local().Format("Mon 02 Jan 2006")
+}
+
+// FormatTime formats a time.Time into a time in a standardised format
+func FormatTime(t time.Time) string {
+	return t.Local().Format("03:04PM")
+}
+
+// FormatTimeDate formats a time.Time into a full time and date, in a standardised format
+func FormatTimeDate(t time.Time) string {
+	return fmt.Sprintf("%s, %s", FormatTime(t), FormatDate(t))
+}
+
+// timeInfo returns the time info of an Event in a readable format with duplicate info minimised
+func (event *Event) timeInfo() string {
+	start := event.Start
+	end := event.End
+	y1, m1, d1 := start.Date()
+	y2, m2, d2 := end.Date()
+
+	if y1 == y2 && m1 == m2 && d1 == d2 {
+		return fmt.Sprintf("%s to %s, %s", FormatTime(start), FormatTime(end), FormatDate(start))
+	}
+	return fmt.Sprintf("%s to %s", FormatTimeDate(start), FormatTimeDate(end))
+}
+
+// toString returns a string with the name and date/time information of an Event.
+func (event Event) toString() string {
+	return fmt.Sprintf("%s\n%s", event.Name, event.timeInfo())
+}
+
+// toString returns a string with the name of the space, followed by a list of the Events occuring. Only the name of the space will be printed if the space contains no Events.
+func (space Space) toString() string {
+	sortedSpaces := space.sortByStartDate()
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("=======================\n%s\n=======================\n", space.getName()))
+	for _, event := range sortedSpaces {
+		sb.WriteString(event.toString())
+		sb.WriteString("\n\n")
+	}
+
+	return sb.String()
+}
+
+// toString returns a string with a list of spaces (using Space.toString). If Spaces is empty [No bookings recorded] will be returned instead.
+func (spaces Spaces) toString() string {
+
+	if len(spaces) == 0 {
+		return "[No bookings recorded]"
+	}
+
+	var sb strings.Builder
+	for _, space := range spaces {
+		sb.WriteString(space.toString())
+	}
+	return sb.String()
+}
+
+// bookingsNowMessage returns currently ongoing events
+func bookingsNowMessage() string {
+	spaces := getSpacesAfter(time.Now())
+	message := fmt.Sprintf("Displaying bookings ongoing right now (%s):\n\n", FormatTimeDate(time.Now()))
+	message += spaces.filter(eventDuring(time.Now())).toString()
+	return message
+}
+
+// bookingsTodayMessage returns events which are happening today. Excludes events which have already finished.
+func bookingsTodayMessage() string {
+	spaces := getSpacesAfter(time.Now())
+	message := "Displaying bookings for today:\n\n"
+	message += spaces.filter(eventOnDay(time.Now())).toString()
+	return message
+}
+
+// bookingsComingWeekMessage returns events which will happen/are happening in the next 7 days. Excludes events which have already finished.
+func bookingsComingWeekMessage() string {
+	spaces := getSpacesAfter(time.Now())
+	message := "Displaying bookings 7 days from now:\n\n"
+	message += spaces.filter(eventBetweenDays(time.Now(), time.Now().AddDate(0, 0, 7))).toString()
+	return message
+}
+
+// bookingsBetweenMessage returns events which will occur between the specified dates. May include events which have already finished as of now.
+func bookingsBetweenMessage(firstDate, lastDate time.Time) string {
+	spaces := getSpacesAfter(firstDate)
+	message := fmt.Sprintf("Displaying bookings from %s to %s:\n\n", FormatDate(firstDate), FormatDate(lastDate))
+	message += spaces.filter(eventBetweenDays(firstDate, lastDate)).toString()
+	return message
+}
+
+// bookingsOnDateMessage returns events which will occur on the specified date. May include events which have already finished as of now.
+func bookingsOnDateMessage(date time.Time) string {
+	spaces := getSpacesAfter(date)
+	message := fmt.Sprintf("Displaying bookings on %s:\n\n", FormatDate(date))
+	message += spaces.filter(eventOnDay(date)).toString()
+	return message
 }
 
 // ParseDDMMYYDate parses user-inputted dd/mm/yy date into time.Time
@@ -128,6 +399,7 @@ func ParseDDMMYYDate(date string) (time.Time, error) {
 	//Attempt to parse as dd/mm/yy
 	format := "02/01/06"
 	t, err := time.Parse(format, date)
+
 	if err != nil {
 		// Attempt to parse as dd/m/yy
 		format = "02/1/06"
@@ -174,197 +446,6 @@ func ParseDDMMYYDate(date string) (time.Time, error) {
 	return t, err
 }
 
-// FormatDate formats a time.Time into date in a standardised format
-func FormatDate(t time.Time) string {
-	return t.Format("Mon, 02 Jan 2006")
-}
-
-// FormatTime formats a time.Time into a time in a standardised format
-func FormatTime(t time.Time) string {
-	return t.Format("03:04PM")
-}
-
-// FormatTimeDate formats a time.Time into a full time and date, in a standardised format
-func FormatTimeDate(t time.Time) string {
-	return fmt.Sprintf("%s, %s", FormatTime(t), FormatDate(t))
-}
-
-// TimeInfo returns the time info of an Event in a readable format with duplicate info minimised
-func (event Event) TimeInfo() string {
-	// Ignores the case of "All Day" events, because there are none in database and I don't know how they're represented
-	// If the start and end of an event is on the same day, then the date is only stated once, with both start and
-	//   end times.
-	// If the start and end of an event is on different days, then both dates and both times are stated
-	start := ParseJSONDate(event.Start)
-	end := ParseJSONDate(event.End)
-	y1, m1, d1 := start.Date()
-	y2, m2, d2 := end.Date()
-
-	if y1 == y2 && m1 == m2 && d1 == d2 {
-		return fmt.Sprintf("%s to %s, %s", FormatTime(start), FormatTime(end), FormatDate(start))
-	}
-	return fmt.Sprintf("%s to %s", FormatTimeDate(start), FormatTimeDate(end))
-}
-
-// SpaceName returns the (capitalised) name of each Space. Case 4 (Prototyping Studio) unused and omitted.
-func SpaceName(facilityID int) string {
-	switch facilityID {
-	case 0:
-		return TR1
-	case 1:
-		return TR2
-	case 2:
-		return CTPH
-	case 3:
-		return AMPH
-	case 5:
-		return CHATTER
-	default:
-		log.Fatal(fmt.Sprintf("ERROR: SpaceName(facilityID int) expects {0,1,2,3,5} but received %d", facilityID))
-		return "NONE"
-	}
-}
-
-// toString displays info associated with one particular Event booking.
-func (event Event) toString() string {
-	return fmt.Sprintf("%s\n%s", event.Title, event.TimeInfo())
-}
-
-//toString displays info for all bookings in a Space.
-func (space Space) toString() string {
-	returnString := ""
-	if len(space) == 0 {
-		returnString += "[No bookings recorded]"
-	} else {
-		for i := range space {
-			if i != 0 {
-				returnString += "\n\n"
-			}
-			returnString += (space)[i].toString()
-		}
-	}
-	return returnString
-}
-
-// ToString displays all info for each Space in Spaces, with a subheader for each Space.
-func (spaces Spaces) toString() string {
-	spacesString := ""
-
-	for _, i := range []int{0, 1, 2, 3, 5} {
-		if i != 0 {
-			spacesString += "\n\n\n"
-		}
-		spacesString += fmt.Sprintf("=======================\n%s\n=======================\n%s",
-			SpaceName(i), (spaces)[i].toString())
-	}
-	return spacesString
-}
-
-// EventPredicate is a predicate function for use with Restrict.
-type EventPredicate func(Event) bool
-
-// Restrict returns a new Spaces object containing all events in the original Spaces for which predicate returns true.
-func (spaces Spaces) Restrict(predicate EventPredicate) Spaces {
-	newSpaces := Spaces{}
-	for i, space := range spaces {
-		newSpaces = append(newSpaces, Space{})
-		for _, event := range space {
-			if predicate(event) {
-				newSpaces[i] = append(newSpaces[i], event)
-			}
-		}
-	}
-	return newSpaces
-}
-
-// EventNow is an EventPredicate testing if current time falls between start and end time of the Event.
-func eventNow(event Event) bool {
-	now := time.Now()
-	start := ParseJSONDate(event.Start)
-	end := ParseJSONDate(event.End)
-	return start.Before(now) && now.Before(end)
-}
-
-// EventOnDay is an EventPredicate testing if any part of an Event falls on the same day as the specified time.Time.
-func eventOnDay(t time.Time) func(Event) bool {
-	y, m, d := t.Date()
-	return func(event Event) bool {
-		start := ParseJSONDate(event.Start)
-		end := ParseJSONDate(event.End)
-		sy, sm, sd := start.Date()
-		ey, em, ed := end.Date()
-		return (eventNow(event) || (y == sy && m == sm && d == sd) || (y == ey && m == em && d == ed))
-	}
-}
-
-// EventToday is an EventPredicate testing if any part of an Event overlaps with the current day.
-func eventToday(event Event) bool {
-	return eventOnDay(time.Now())(event)
-}
-
-// EventBefore tests if any part of an Event falls before a given time.Time. It is NOT an EventPredicate.
-func eventBefore(event Event, t time.Time) bool {
-	start := ParseJSONDate(event.Start)
-	return start.Before(t)
-}
-
-// EventAfter tests if any part of an Event falls after a given time.Time. It is NOT an EventPredicate.
-func eventAfter(event Event, t time.Time) bool {
-	end := ParseJSONDate(event.End)
-	return end.After(t)
-}
-
-// EventComingWeek is an EventPredicate testing if an Event overlaps with the time period of (now, now + 7 days)
-func eventComingWeek(event Event) bool {
-	now := time.Now()
-	week := now.AddDate(0, 0, 7)
-	return eventAfter(event, now) && eventBefore(event, week)
-}
-
-// EventBetweenDays returns an EventPredicate testing if an event falls between the start and end date, inclusive.
-// It is meant to be called with start, end time.Time obtained from ParseDDMMYYDate, which by default has time = 12MN.
-func EventBetweenDays(start, end time.Time) func(Event) bool {
-	correctedEnd := end.AddDate(0, 0, 1) // Standard is 12AM, so 1 day is added to capture events on the last day
-	return func(event Event) bool {
-		return eventAfter(event, start) && eventBefore(event, correctedEnd)
-	}
-}
-
-// BookingsTodayMessage returns a string describing all bookings today.
-func (spaces Spaces) bookingsTodayMessage() string {
-	message := fmt.Sprintf("Displaying bookings for today:\n\n")
-	message += spaces.Restrict(eventToday).toString()
-	return message
-}
-
-// BookingsNowMessage returns a string describing all bookings active this moment.
-func (spaces Spaces) bookingsNowMessage() string {
-	message := fmt.Sprintf("Displaying bookings ongoing right now (%s):\n\n", FormatTimeDate(time.Now()))
-	message += spaces.Restrict(eventNow).toString()
-	return message
-}
-
-// BookingsComingWeekMessage returns a string describing bookings within 7 days.
-func (spaces Spaces) bookingsComingWeekMessage() string {
-	message := "Displaying bookings within 7 days from now:\n\n"
-	message += spaces.Restrict(eventComingWeek).toString()
-	return message
-}
-
-// BookingsOnDate returns a string describing bookings on the same day as the given time.Time.
-func (spaces Spaces) bookingsOnDate(t time.Time) string {
-	message := fmt.Sprintf("Displaying bookings on %s:\n\n", FormatDate(t))
-	message += spaces.Restrict(eventOnDay(t)).toString()
-	return message
-}
-
-// BookingsBetween returns a string describing bookings in the given interval.
-func (spaces Spaces) bookingsBetween(start, end time.Time) string {
-	message := fmt.Sprintf("Displaying bookings between %s and %s\n\n", FormatDate(start), FormatDate(end))
-	message += spaces.Restrict(EventBetweenDays(start, end)).toString()
-	return message
-}
-
 //Spaces is the primary Cinnabot Spaces method that the end user interacts with.
 //	"/spaces" displays bookings for today.
 //	"/spaces now" displays bookings right this moment.
@@ -376,22 +457,25 @@ func (spaces Spaces) bookingsBetween(start, end time.Time) string {
 //	Extra arguments are ignored.
 //	Unparseable commands return the help menu.
 func (cb *Cinnabot) Spaces(msg *message) {
+	cb.SendTextMessage(msg.From.ID, spacesMsg(msg))
+}
+
+// for easier debugging
+func spacesMsg(msg *message) string {
 	toSend := ""
-	spaces := getSpaces()
-	if len(msg.Args) == 0 {
-		toSend += spaces.bookingsTodayMessage()
+
+	if len(msg.Args) == 0 || msg.Args[0] == "today" {
+		toSend += bookingsTodayMessage()
 	} else if msg.Args[0] == "now" {
-		toSend += spaces.bookingsNowMessage()
+		toSend += bookingsNowMessage()
 	} else if msg.Args[0] == "week" {
-		toSend += spaces.bookingsComingWeekMessage()
-	} else if msg.Args[0] == "today" {
-		toSend += spaces.bookingsTodayMessage()
+		toSend += bookingsComingWeekMessage()
 	} else if msg.Args[0] == "tomorrow" {
-		today := time.Now()
-		tomorrow := today.AddDate(0, 0, 1)
-		toSend += spaces.bookingsOnDate(tomorrow)
+		toSend += bookingsOnDateMessage(time.Now().AddDate(0, 0, 1))
 	} else {
+		//try to parse date
 		t0, err0 := ParseDDMMYYDate(msg.Args[0])
+
 		if err0 == nil {
 			// First argument is a valid date
 			// Attempt to parse second argument, if exists, and show BookingsBetween(t0, t1)
@@ -402,15 +486,11 @@ func (cb *Cinnabot) Spaces(msg *message) {
 					if t0.AddDate(0, 0, 33).Before(t1) {
 						toSend += "The time interval is too long. Please restrict it to at most one month."
 					} else {
-						toSend += spaces.bookingsBetween(t0, t1)
+						toSend += bookingsBetweenMessage(t0, t1)
 					}
 				}
-			}
-
-			if toSend == "" {
-				// i.e., second argument does not exist or failed to parse as date
-				// Just show events on date t0
-				toSend += spaces.bookingsOnDate(t0)
+			} else {
+				toSend += bookingsOnDateMessage(t0)
 			}
 		}
 	}
@@ -424,5 +504,5 @@ func (cb *Cinnabot) Spaces(msg *message) {
 		toSend += "To use the '/spaces' command, type one of the following:\n'/spaces' : to view all bookings for today\n'/spaces now' : to view bookings active at this very moment\n'/spaces week' : to view all bookings for this week\n'/spaces dd/mm(/yy)' : to view all bookings on a specific day\n'/spaces dd/mm(/yy) dd/mm(/yy)' : to view all bookings in a specific range of dates"
 	}
 
-	cb.SendTextMessage(msg.From.ID, toSend)
+	return toSend
 }
