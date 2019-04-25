@@ -28,7 +28,8 @@ before_script:
   - go get golang.org/x/lint/golint                        # Linter
   - go get github.com/fzipp/gocyclo
   - go get gopkg.in/telegram-bot-api.v4
-  - cd $GOPATH/src/github.com/usdevs
+  - cd $GOPATH && mkdir -p src/github.com/usdevs
+  - cd src/github.com/usdevs
   - git clone https://github.com/usdevs/cinnabot.git && cd cinnabot
   - go get ./...
 
