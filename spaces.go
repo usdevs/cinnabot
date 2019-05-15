@@ -178,7 +178,7 @@ func getSpaces(query string) Spaces {
 
 // getSpacesAfter returns the Events (as Spaces) whose endDate is after the specified date
 func getSpacesAfter(date time.Time) Spaces {
-	query := makeQuery("endDate", GREATER_THAN, jsonTime(date))
+	query := makeQuery("endDate", GREATER_THAN, jsonTime(date.UTC())) //convert to UTC as firestore stores UTC datetimes
 	return getSpaces(query)
 }
 
@@ -256,7 +256,7 @@ func (spaces Spaces) filter(predicate eventPredicate) Spaces {
 	return filteredSpaces
 }
 
-// eventBetween returns true if an event occurs between the 2 times given
+// eventBetween returns true if an event occurs between the 2 times given. assumes firstDate and lastDate are not equal
 func eventBetween(firstDate, lastDate time.Time) eventPredicate {
 	return func(e Event) bool {
 		if e.Start.Before(firstDate) {
@@ -281,9 +281,10 @@ func eventBetweenDays(firstDate, lastDate time.Time) eventPredicate {
 	return eventBetween(startOfDay(firstDate), endOfDay(lastDate))
 }
 
-// startOfDay returns a new time.Time with the time set to 00:00
+// startOfDay returns a new time.Time with the time set to 00:00 (SG time)
 func startOfDay(date time.Time) time.Time {
-	return time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, date.Location())
+	localDate := date.Local()
+	return time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0,localDate.Location())
 }
 
 // endOfDay returns the next day 00:00
@@ -295,12 +296,16 @@ func endOfDay(date time.Time) time.Time {
 
 // FormatDate formats a time.Time into date in a standardised format
 func FormatDate(t time.Time) string {
-	return t.Local().Format("Mon 02 Jan 2006")
+	return t.Local().Format("Mon 02 Jan 06")
 }
 
 // FormatTime formats a time.Time into a time in a standardised format
 func FormatTime(t time.Time) string {
-	return t.Local().Format("03:04PM")
+	localT := t.Local()
+	if localT.Minute()==0 {
+		return localT.Format("03PM")
+	}
+	return localT.Format("03:04PM")
 }
 
 // FormatTimeDate formats a time.Time into a full time and date, in a standardised format
@@ -312,8 +317,8 @@ func FormatTimeDate(t time.Time) string {
 func (event *Event) timeInfo() string {
 	start := event.Start
 	end := event.End
-	y1, m1, d1 := start.Date()
-	y2, m2, d2 := end.Date()
+	y1, m1, d1 := start.Local().Date()
+	y2, m2, d2 := end.Local().Date()
 
 	if y1 == y2 && m1 == m2 && d1 == d2 {
 		return fmt.Sprintf("%s to %s, %s", FormatTime(start), FormatTime(end), FormatDate(start))
@@ -321,9 +326,9 @@ func (event *Event) timeInfo() string {
 	return fmt.Sprintf("%s to %s", FormatTimeDate(start), FormatTimeDate(end))
 }
 
-// toString returns a string with the name and date/time information of an Event.
+// toString returns a string with the name and date/time information of an Event, with event name bolded.
 func (event Event) toString() string {
-	return fmt.Sprintf("%s\n%s", event.Name, event.timeInfo())
+	return fmt.Sprintf("*%s:* %s", event.Name, event.timeInfo())
 }
 
 // toString returns a string with the name of the space, followed by a list of the Events occuring. Only the name of the space will be printed if the space contains no Events.
@@ -372,15 +377,17 @@ func bookingsTodayMessage() string {
 
 // bookingsComingWeekMessage returns events which will happen/are happening in the next 7 days. Excludes events which have already finished.
 func bookingsComingWeekMessage() string {
+	now := time.Now()
+	weekLater := now.AddDate(0,0,7)
 	spaces := getSpacesAfter(time.Now())
-	message := "Displaying bookings 7 days from now:\n\n"
-	message += spaces.filter(eventBetweenDays(time.Now(), time.Now().AddDate(0, 0, 7))).toString()
+	message := fmt.Sprintf("Displaying bookings 7 days from now (%s to %s):\n\n",FormatDate(now), FormatDate(weekLater))
+	message += spaces.filter(eventBetweenDays(now, weekLater)).toString()
 	return message
 }
 
 // bookingsBetweenMessage returns events which will occur between the specified dates. May include events which have already finished as of now.
 func bookingsBetweenMessage(firstDate, lastDate time.Time) string {
-	spaces := getSpacesAfter(firstDate)
+	spaces := getSpacesAfter(startOfDay(firstDate))
 	message := fmt.Sprintf("Displaying bookings from %s to %s:\n\n", FormatDate(firstDate), FormatDate(lastDate))
 	message += spaces.filter(eventBetweenDays(firstDate, lastDate)).toString()
 	return message
@@ -388,8 +395,8 @@ func bookingsBetweenMessage(firstDate, lastDate time.Time) string {
 
 // bookingsOnDateMessage returns events which will occur on the specified date. May include events which have already finished as of now.
 func bookingsOnDateMessage(date time.Time) string {
-	spaces := getSpacesAfter(date)
-	message := fmt.Sprintf("Displaying bookings on %s:\n\n", FormatDate(date))
+	spaces := getSpacesAfter(startOfDay(date))
+	message := fmt.Sprintf("Displaying all bookings on %s:\n\n", FormatDate(date))
 	message += spaces.filter(eventOnDay(date)).toString()
 	return message
 }
