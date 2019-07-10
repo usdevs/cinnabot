@@ -11,7 +11,7 @@ import (
 	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"gopkg.in/telegram-bot-api.v4"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 //Structs for BusTiming
@@ -303,7 +303,7 @@ func nusBusTimingResponse(BSH *BusStopHeap) string { // for location-based query
 	return returnMessage
 }
 
-//Bus stop structs
+//BusStop models a public / nus bus stop
 type BusStop struct {
 	BusStopNumber string `json:"no"`
 	Latitude      string `json:"lat"`
