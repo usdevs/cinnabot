@@ -1,19 +1,55 @@
-# cinnabot  [![Build Status](https://travis-ci.org/varunpatro/cinnabot.svg)](https://travis-ci.org/varunpatro/cinnabot/)
+# cinnabot  [![Build Status](https://travis-ci.org/usdevs/cinnabot.svg)](https://travis-ci.org/usdevs/cinnabot/)
 Telegram Bot for Cinnamon College
 
-## Set Up
+## Documentation quick links
+- Setting up the environment
+- Testing cinnabot locally
 
-`go get ./...`
+## Setting up the environment
 
-## Test
+0. Install essential packages
 
-`go test ./...`
+We will first need to install git and golang.
 
-## Suggestions
+### Ubuntu/Debian derivatives using APT
+```bash
+sudo apt install git golang
+```
 
-1. Caching of PSI data for faster response
+### MacOS using Homebrew
+```bash
+brew install git golang
+```
 
-### Features
+### Windows: WIP
 
-1. Have cooler phrases as commands instead of one word commands. Like ''.
-2. Fun error messages (e.g. Chuck Norris Jokes)
+1. Set the environment variables
+
+All the Go related files will go under a folder called `GOPATH`. We first have to tell your computer where that is, by setting up this path in your environment variables. 
+
+Follow the official guide [here](https://github.com/golang/go/wiki/SettingGOPATH).
+
+For Linux and MacOS users, follow the section under *UNIX Systems*. If you are not sure which shell you are using, enter `$0` into your command line.
+
+You can also follow the steps below:
+### Bash (if you are not sure, you are most likely using BASH)
+```bash
+echo "export GOPATH=$HOME/go" >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Zsh
+```bash
+echo "export GOPATH=$HOME/go" >> ~/.zshrc
+source ~/.zshrc
+```
+
+At this stage, you can verify that Golang and `GOPATH` are set up properly by:
+```bash
+$ go version
+go version go1.10.4 linux/amd64 # version, OS/architecture
+$ echo $GOPATH
+/home/your_username/go # default GOPATH
+```
+
+2. Create a directory under GO
