@@ -93,6 +93,11 @@ $ git clone https://github.com/usdevs/cinnabot.git && cd cinnabot
 
 Voila! Now we have cinnabot on our machine. Ready to go!!
 
+### 3. `Go get` packages
+```bash
+$ go get ./...
+```
+
 ## Testing Cinnabot locally
 Overview:
 1. Register for an API Token with `BotFather`.
