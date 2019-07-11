@@ -1,4 +1,4 @@
-# Cinnabot :robot: [![Build Status](https://travis-ci.org/usdevs/cinnabot.svg)](https://travis-ci.org/usdevs/cinnabot/)
+# Cinnabot :robot: [![Build Status](https://travis-ci.com/usdevs/cinnabot.svg)](https://travis-ci.com/usdevs/cinnabot/)
 Telegram Bot for Cinnamon College. [Telegram](https://t.me/cinnabot)
 
 ## Features:
