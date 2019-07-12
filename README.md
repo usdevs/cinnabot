@@ -130,7 +130,7 @@ cd main
 cp config.json.example config.json
 ```
 
-And replace the dummy string with your API Token, wrapped in quotes (`"`).
+Fire up your favourite text editor and replace the dummy string in `config.json` with your API Token as a string.
 
 ### 2. Running a test bot on Telegram
 ```bash
