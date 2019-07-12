@@ -5,9 +5,9 @@ import (
 	"log"
 	"os"
 
-	"cinnabot/model"
-	"cinnabot"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"github.com/usdevs/cinnabot"
+	"github.com/usdevs/cinnabot/model"
 )
 
 func main() {

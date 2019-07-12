@@ -11,7 +11,7 @@ import (
 	"math"
 	"regexp"
 
-	"cinnabot/model"
+	"github.com/usdevs/cinnabot/model"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"gopkg.in/telegram-bot-api.v4"
 )

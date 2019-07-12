@@ -10,7 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/varunpatro/cinnabot/model"
+	"github.com/usdevs/cinnabot/model"
 )
 
 var (
