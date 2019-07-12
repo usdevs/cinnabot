@@ -109,8 +109,8 @@ go get ./...
 
 ## Testing Cinnabot locally
 Overview:
-1. Register for an API Token with `BotFather`.
-2. Running a test bot on Telegram
+1. [Register for an API Token with `BotFather`](#1-register-for-an-api-token-with-botfather)
+2. [Running a test bot on Telegram](#2-running-a-test-bot-on-telegram)
 
 **All instructions below assume you are at the cinnabot root path, unless stated otherwise.**
 ```bash
