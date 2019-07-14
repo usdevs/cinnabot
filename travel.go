@@ -10,20 +10,20 @@ import (
 	"strconv"
 	"time"
 
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
-//Structs for BusTiming
+// BusTimes stores a list of Services
 type BusTimes struct {
-	Services []Service `json:"Services"`
+	Services []service `json:"Services"`
 }
 
-type Service struct {
+type service struct {
 	ServiceNum string  `json:"ServiceNo"`
 	Next       NextBus `json:"NextBus"`
 }
 
+// NextBus stores the estimated arrival timing
 type NextBus struct {
 	EstimatedArrival string `json:"EstimatedArrival"`
 }
@@ -111,15 +111,15 @@ func busTimingResponse(BSH *BusStopHeap) string {
 	return returnMessage
 }
 
-//NUSBusTimes structs for unmarshalling
+// Response is used by NUSBusTimes for unmarshalling
 type Response struct {
-	Result ServiceResult `json:"ShuttleServiceResult"`
+	Result serviceResult `json:"ShuttleServiceResult"`
 }
-type ServiceResult struct {
-	Shuttles []Shuttle `json:"shuttles"`
+type serviceResult struct {
+	Shuttles []shuttle `json:"shuttles"`
 }
 
-type Shuttle struct {
+type shuttle struct {
 	ArrivalTime     string `json:"arrivalTime"`
 	NextArrivalTime string `json:"nextArrivalTime`
 	Name            string `json:"name"`
@@ -311,6 +311,7 @@ type BusStop struct {
 	BusStopName   string `json:"name"`
 }
 
+// BusStopHeap is a heap of bus stops that implements heap.Interface
 type BusStopHeap struct {
 	busStopList []BusStop
 	location    tgbotapi.Location
@@ -328,10 +329,12 @@ func (h BusStopHeap) Swap(i, j int) {
 	h.busStopList[i], h.busStopList[j] = h.busStopList[j], h.busStopList[i]
 }
 
+// Push implements heap.Interface
 func (h *BusStopHeap) Push(x interface{}) {
 	h.busStopList = append(h.busStopList, x.(BusStop))
 }
 
+// Pop implements heap.Interface
 func (h *BusStopHeap) Pop() interface{} {
 	oldh := h.busStopList
 	n := len(oldh)
