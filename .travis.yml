@@ -26,7 +26,7 @@ go_import_path: github.com/usdevs/cinnabot
 before_script:
   # All the .go files, excluding vendor/
   - GO_FILES=$(find . -iname '*.go' -type f | grep -v /vendor/) 
-  - cd $GOPATH/github.com/src/usdevs/cinnabot && go get -t ./...
+  - cd $GOPATH/src/github.com/usdevs/cinnabot && go get -t ./...
   - go get golang.org/x/lint/golint # Linter
   - go get github.com/fzipp/gocyclo
 
