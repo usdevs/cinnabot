@@ -1,4 +1,7 @@
-# Cinnabot :robot: [![Build Status](https://travis-ci.com/usdevs/cinnabot.svg)](https://travis-ci.com/usdevs/cinnabot/)
+# Cinnabot :robot: 
+[![Build Status](https://travis-ci.com/usdevs/cinnabot.svg)](https://travis-ci.com/usdevs/cinnabot/)
+[![Telegram](https://img.shields.io/badge/telegram-ready-brightgreen.svg)](https://t.me/cinnabot)
+
 Telegram Bot for Cinnamon College. [Telegram](https://t.me/cinnabot)
 
 ## Features:
@@ -7,11 +10,16 @@ Telegram Bot for Cinnamon College. [Telegram](https://t.me/cinnabot)
 - Check facilities booking/events in Cinnamon College :school: `/spaces`
 - 2h Weather Forecast based on your location. :sunny: :umbrella: `/weather`
 
+
+Got a feature to suggest? :bulb:
+Bug to report? :bug:
+You are welcome to file an issue [here](https://github.com/usdevs/cinnabot/issues).
+
 ## Documentation quick links
 - [Setting up the environment](#setting-up-the-environment)
 - [Testing cinnabot locally](#testing-cinnabot-locally)
 
-## Setting up the environment
+## Setting up the environment :earth_asia:
 
 ### 0. Install essential packages
 
@@ -23,7 +31,7 @@ package manager:
 sudo apt install git
 ```
 
-#### MacOS using Homebrew
+#### MacOS using Homebrew :beer:
 ```bash
 brew install git
 ```
@@ -91,17 +99,18 @@ $ pwd
 $ git clone https://github.com/usdevs/cinnabot.git && cd cinnabot
 ```
 
-Voila! Now we have cinnabot on our machine. Ready to go!!
+Voila! Now we have cinnabot on our machine. Ready to go!! :tada:
 
 ### 3. `Go get` packages
+This step will fetch all the dependencies for cinnabot.
 ```bash
-$ go get ./...
+go get ./...
 ```
 
 ## Testing Cinnabot locally
 Overview:
-1. Register for an API Token with `BotFather`.
-2. Running a test bot on Telegram
+1. [Register for an API Token with `BotFather`](#1-register-for-an-api-token-with-botfather)
+2. [Running a test bot on Telegram](#2-running-a-test-bot-on-telegram)
 
 **All instructions below assume you are at the cinnabot root path, unless stated otherwise.**
 ```bash
@@ -115,17 +124,22 @@ You will be provided, with honor, an API token where you should put into `main/c
 
 In other words, click on the link and choose a Telegram handle for your bot, which ends with `...bot` and is not taken yet. Once you are done, you will be provided with the API Token.
 
-Then, `cd main` and edit the `config.json` file, replacing the dummy API Token with yours.
+Then, we create our `config.json` file using the example file `config.json.example`, and replacing the dummy API Token with the one we just registered.
+```bash
+cd main
+cp config.json.example config.json
+```
+
+Fire up your favourite text editor and replace the dummy string in `config.json` with your API Token as a string.
 
 ### 2. Running a test bot on Telegram
 ```bash
-go get . # get a cup of tea, it will take a couple of minutes
 cd main
 go run main.go
 ```
 
 And start testing! Fire up your favourite Telegram client, and find the bot by the name you registered it with. You can now test all cinnabot functionalities on your testbot.
 
-When you are done, press <kbd>Ctrl</kbd>+<kbd>C</kbd> to end testing.
+When you are done, press <kbd>Ctrl</kbd>+<kbd>C</kbd> on your terminal to end testing.
 
 
