@@ -88,7 +88,7 @@ $ echo $GOPATH
 
 Run this command to download the cinnabot project and its dependencies. 
 ```
-go get -u github.com/usdevs/cinnabot
+go get -u -t -v github.com/usdevs/cinnabot
 ```
 Voila! Now we have cinnabot on our machine. Ready to go!! :tada:
 
