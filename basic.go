@@ -1,20 +1,20 @@
 package cinnabot
 
 import (
-	"net/http"
-	"strconv"
-	"strings"
-
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"math"
+	"net/http"
 	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 
-	"github.com/usdevs/cinnabot/model"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"gopkg.in/telegram-bot-api.v4"
+	"github.com/usdevs/cinnabot/model"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 //Test functions [Not meant to be used in bot]
@@ -113,7 +113,7 @@ func (cb *Cinnabot) Resources(msg *message) {
 	//If no args in resources and arg not relevant
 	if len(msg.Args) == 0 || !cb.CheckArgCmdPair("/resources", msg.Args) {
 		opt1 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Telegram"), tgbotapi.NewKeyboardButton("Links"))
-		opt2 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Interest_Groups"), tgbotapi.NewKeyboardButton("Everything"))
+		opt2 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Interest Groups"), tgbotapi.NewKeyboardButton("Everything"))
 
 		options := tgbotapi.NewReplyKeyboard(opt1, opt2)
 
@@ -125,139 +125,71 @@ func (cb *Cinnabot) Resources(msg *message) {
 
 	robotSays := "🤖: Here you go!\n\n"
 
-	if msg.Args[0] == "telegram" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getResources("TELEGRAM"))
-		return
-	} else if msg.Args[0] == "links" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getResources("LINKS"))
-		return
-	} else if msg.Args[0] == "interest_groups" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getResources("INTEREST_GROUPS"))
-		return
-	} else if msg.Args[0] == "everything" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getResources("TELEGRAM")+"\n\n"+getResources("LINKS")+"\n\n"+getResources("INTEREST_GROUPS"))
+	switch msg.Args[0] {
+	case "telegram", "links", "interest":
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getResources(msg.Args[0]))
+	case "everything":
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getResources("telegram")+"\n\n"+getResources("links")+"\n\n"+getResources("interest"))
 	}
 
-/*	var key string = strings.ToLower(strings.Join(msg.Args, " "))
-	log.Print(key)
-	_, ok := resources[key]
-	if ok {
-		cb.SendTextMessage(int(msg.Chat.ID), resources[key])
-	} else {
-		var values string = ""
-		for key, _ := range resources {
-			values += key + " : " + resources[key] + "\n"
-		}
-		msg := tgbotapi.NewMessage(msg.Chat.ID, values)
-		msg.DisableWebPagePreview = true
-		msg.ParseMode = "markdown"
-		cb.SendMessage(msg)
-	} */
+	return
+	/*	var key string = strings.ToLower(strings.Join(msg.Args, " "))
+		log.Print(key)
+		_, ok := resources[key]
+		if ok {
+			cb.SendTextMessage(int(msg.Chat.ID), resources[key])
+		} else {
+			var values string = ""
+			for key, _ := range resources {
+				values += key + " : " + resources[key] + "\n"
+			}
+			msg := tgbotapi.NewMessage(msg.Chat.ID, values)
+			msg.DisableWebPagePreview = true
+			msg.ParseMode = "markdown"
+			cb.SendMessage(msg)
+		} */
 }
 
-// helper func to get keys from resources
-func KeysString(m map[string]string) string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
-	}
-	return "[" + strings.Join(keys, ", ") + "]"
-}
-
-// helper func to sort values alphabetically
-func SortString(w string) string {
-    s := strings.Split(w, "\n")
-    sort.Strings(s)
-    return strings.Join(s, "\n")
+type resources struct {
+	Telegram       map[string]string `json:"telegram"`
+	Links          map[string]string `json:"links"`
+	InterestGroups map[string]string `json:"interest_groups"`
 }
 
 func getResources(code string) string { // for resources buttons
-	returnMessage := "*" + code + "*\n"
+	var (
+		resources resources
+		jsonBytes []byte
+		err       error
+	)
 
-	resources_tele := make(map[string]string)
-	resources_tele["Food"] = "@rcmealbot"
-	resources_tele["Study Groups"] = "@USPhonebook\\_bot"
-	resources_tele["USChannel"] = "[USChannel](t.me/USPChannel)"
-	resources_tele["Supper Jio"] = "@SupperJio\\_bot"
-
-	resources_links := make(map[string]string)
-	resources_links["USP Life!"] = "[Fb page](https://www.facebook.com/groups/usplife/)"
-	resources_links["Spaces"] = "[Spaces web](http://www.nususc.com/Spaces.aspx)"
-	resources_links["USC"] = "[USC web](http://www.nususc.com/MainPage.aspx)"
-	resources_links["Fault Reporting"] = "[Faulty Cinnamon](https://bit.ly/faultycinnamon)"
-
-	// currently hardcoded but might switch over to getting data from usc website stored on firestore
-	// may consider sorting IGs within category (eg. sports, sociocultural) in the future
-	resources_ig := make(map[string]string)
-	resources_ig["Tchoukball"] = "@andyylam"
-	resources_ig["Track & Field"] = "@cheongsiu, @chlobao"
-	resources_ig["Table Tennis"] = "@baba2le"
-	resources_ig["Floorball"] = "@meltaaang @gawbansiang"
-	resources_ig["Basketball (Women’s)"] = "@nubztiger"
-	resources_ig["Basketball (Women’s)"] = "@nubztiger"
-	resources_ig["Soccer (Women's)"] = "@jeslynnnnn, @qiiaannn"
-	resources_ig["Touch Rugby"] = "@wilsonxiang, @cloudineee"
-	resources_ig["Contract Bridge"] = "@jiacurry, @meowufanya"
-	resources_ig["Ultimate Frisbee"] = "@bioniclelee, @wxiting"
-	resources_ig["Badminton"] = "[Whatsapp Group](https://chat.whatsapp.com/BVzaXrGCKmb9zRnbteBD6F)"
-	resources_ig["Dodgeball"] = "@psychicdreamz"
-	resources_ig["thINK mentorship"] = "@jeslynnnnn, @meowufanya"
-	resources_ig["International Chess"] = "@petelephant"
-	resources_ig["Livecore"] = "@archabanana, @okayszekay"
-	resources_ig["Netball"] = "@blueeeberniceee"
-	resources_ig["Reversi"] = "@ayuyush"
-	resources_ig["Tennis"] = "@theovitooo"
-	resources_ig["Tabletop"] = "@samuellai2"
-	resources_ig["VIBE! (Dance)"] = "@gohliangyi"
-	resources_ig["USCaffeinated (Coffee/Tea IG)"] = "@jakkarintiew"
-	resources_ig["Gender Collective (Gender-related discussions)"] = "@devni"
-	resources_ig["USPapers (Weekly news flash/recap updates)"] = "@chaitanyabaranwal, @archabanana"
-	resources_ig["USRPG (role-playing games)"] = "@BiblioclasticPenumbra"
-	resources_ig["USCooking"] = "@coolipop, @MkTay"
-	resources_ig["Polymath (Pecha Kucha presentations)"] = "@zhirui19, @MkTay, @yijiatho, @ravenkingg, @JustJongJong"
-	resources_ig["USmash Bros"] = "@nghuiren"
-	resources_ig["USPoker"] = "@xmarcusng, @ishootarrows"
-	resources_ig["USPolyglot (UTown Language Exchange)"] = "@zerowastejonina"
-	resources_ig["USBlobs (Arts Interest Group)"] = "@blacksesame0re0"
-	resources_ig["Love, USP (Mental Health awareness)"] = "@hazzziqah"
-	resources_ig["USCalisthenics"] = "@Larrylawl"
-	resources_ig["USClassical"] = "@swampertx, @yanjean"
-	resources_ig["USPatisserie"] = "@baguettehan"
-	resources_ig["USPeng (Mahjong)"] = "@sheeman"
-	resources_ig["USP Gainsville"] = "@sexyzebra"
-	resources_ig["USP Overwatch"] = "@Lyrad"
-	resources_ig["The Cinnamon Conversations"] = "@Junhao1511"
-	resources_ig["USDevs"] = "@swampertx"
-
-	if code == "TELEGRAM" {
-		key := KeysString(resources_tele)
-		log.Print(key)
-		var values string = ""
-		for key := range resources_tele {
-			values += key + " : " + resources_tele[key] + "\n"
-		}
-		returnMessage += values
-	} else if code == "LINKS" {
-		key := KeysString(resources_links)
-		log.Print(key)
-		var values string = ""
-		for key := range resources_links {
-			values += key + " : " + resources_links[key] + "\n"
-		}
-		returnMessage += values
-	} else if code == "INTEREST_GROUPS" {
-		key := KeysString(resources_ig)
-		log.Print(key)
-		var values string = ""
-		for key := range resources_ig {
-			values += key + " : " + resources_ig[key] + "\n"
-		}
-		values = values[:len(values)-2] // remove last \n
-		values_sorted := SortString(values)
-		returnMessage += values_sorted
+	jsonBytes, err = ioutil.ReadFile("../resources.json")
+	if err != nil {
+		fmt.Println(err)
+	}
+	if err := json.Unmarshal(jsonBytes, &resources); err != nil {
+		fmt.Println(err)
 	}
 
-	return returnMessage
+	var (
+		resourceList []string
+		resourceType map[string]string
+	)
+	switch code {
+	case "telegram":
+		resourceType = resources.Telegram
+	case "links":
+		resourceType = resources.Links
+	case "interest":
+		resourceType = resources.InterestGroups
+	}
+
+	for k, v := range resourceType {
+		resourceList = append(resourceList, fmt.Sprintf("%v : %v", k, v))
+	}
+	sort.Strings(resourceList)
+
+	return "*" + code + "*\n" + strings.Join(resourceList, "\n")
 }
 
 //Structs for weather forecast function
