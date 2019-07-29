@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/patrickmn/go-cache"
+	cache "github.com/patrickmn/go-cache"
 	"github.com/usdevs/cinnabot/model"
-	"gopkg.in/telegram-bot-api.v4"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 type bot interface {
@@ -190,7 +190,7 @@ func (cb *Cinnabot) CheckArgCmdPair(cmd string, args []string) bool {
 	checkMap["/ohsfeedback"] = []string{"anything"}
 	checkMap["/cbs"] = []string{"subscribe", "unsubscribe"}
 
-	checkMap["/resources"] = []string{"telegram", "links", "interest_groups", "everything", ""}
+	checkMap["/resources"] = []string{"telegram", "links", "interest", "everything", ""}
 
 	checkMap["/publicbus"] = []string{"cinnamon", ""}
 	checkMap["/nusbus"] = []string{"utown", "science", "arts", "law", "yih/engin", "cenlib", "biz", "yih", "kr-mrt", "mpsh", "comp", ""}
