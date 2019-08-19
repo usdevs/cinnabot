@@ -1,14 +1,13 @@
 {
     "telegram": {
         "Food": "@rcmealbot",
-        "Study Groups": "@USPhonebook\\_bot",
         "USChannel": "[USChannel](t.me/USPChannel)",
         "Supper Jio": "@SupperJio\\_bot"
     },
     "links": {
         "USP Life!": "[Fb page](https://www.facebook.com/groups/usplife/)",
-        "Spaces": "[Spaces web](http://www.nususc.com/Spaces.aspx)",
-        "USC": "[USC web](http://www.nususc.com/MainPage.aspx)",
+        "Spaces": "[Spaces web](https://www.nususc.com/spaces)",
+        "USC": "[USC web](https://nususc.com)",
         "Fault Reporting": "[Faulty Cinnamon](https://bit.ly/faultycinnamon)"
     },
     "interest_groups": {
