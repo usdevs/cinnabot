@@ -86,26 +86,12 @@ $ echo $GOPATH
 
 ### 2. Create your Go workspace
 
-Note: we assume your `GOPATH` is set to `~/go` for the instructions below.
-```bash
-cd ~
-mkdir -p go/src/github.com/usdevs && cd go/src/github.com/usdevs
+Run this command to download the cinnabot project and its dependencies. 
 ```
-
-We can now proceed to clone the cinnabot repository to your machine.
-```bash
-$ pwd
-/home/your_username/go/src/github.com/usdevs
-$ git clone https://github.com/usdevs/cinnabot.git && cd cinnabot
+go get -u -t -v github.com/usdevs/cinnabot
 ```
-
 Voila! Now we have cinnabot on our machine. Ready to go!! :tada:
 
-### 3. `Go get` packages
-This step will fetch all the dependencies for cinnabot.
-```bash
-go get ./...
-```
 
 ## Testing Cinnabot locally
 Overview:
