@@ -50,6 +50,7 @@ func main() {
 	cb.AddFunction("/cancel", cb.Cancel)
 
 	updates := cb.Listen(60)
+	log.Println("Listening...")
 
 	for update := range updates {
 		if update.Message != nil {

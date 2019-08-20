@@ -1,18 +1,20 @@
 package cinnabot
 
 import (
-	"net/http"
-	"strconv"
-	"strings"
-
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"math"
 
-	"github.com/usdevs/cinnabot/model"
+	"net/http"
+	"sort"
+	"strconv"
+	"strings"
+  
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"gopkg.in/telegram-bot-api.v4"
+	"github.com/usdevs/cinnabot/model"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 //Test functions [Not meant to be used in bot]
@@ -95,28 +97,87 @@ func (cb *Cinnabot) About(msg *message) {
 
 //Link returns useful resources
 func (cb *Cinnabot) Resources(msg *message) {
-	resources := make(map[string]string)
-	resources["usplife"] = "[fb page](https://www.facebook.com/groups/usplife/)"
-	resources["food"] = "@rcmealbot"
-	resources["spaces"] = "[spaces web](http://www.nususc.com/Spaces.aspx)"
-	resources["usc"] = "[usc web](http://www.nususc.com/MainPage.aspx)"
-	resources["study groups"] = "@USPhonebook\\_bot"
 
-	var key string = strings.ToLower(strings.Join(msg.Args, " "))
-	log.Print(key)
-	_, ok := resources[key]
-	if ok {
-		cb.SendTextMessage(int(msg.Chat.ID), resources[key])
-	} else {
-		var values string = ""
-		for key, _ := range resources {
-			values += key + " : " + resources[key] + "\n"
-		}
-		msg := tgbotapi.NewMessage(msg.Chat.ID, values)
-		msg.DisableWebPagePreview = true
-		msg.ParseMode = "markdown"
-		cb.SendMessage(msg)
+	//If no args in resources and arg not relevant
+	if len(msg.Args) == 0 || !cb.CheckArgCmdPair("/resources", msg.Args) {
+		opt1 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Telegram"), tgbotapi.NewKeyboardButton("Links"))
+		opt2 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Interest Groups"), tgbotapi.NewKeyboardButton("Everything"))
+
+		options := tgbotapi.NewReplyKeyboard(opt1, opt2)
+
+		replyMsg := tgbotapi.NewMessage(msg.Chat.ID, "🤖: How can I help you?\n\n")
+		replyMsg.ReplyMarkup = options
+		cb.SendMessage(replyMsg)
+		return
 	}
+
+	robotSays := "🤖: Here you go!\n\n"
+
+	switch msg.Args[0] {
+	case "telegram", "links", "interest":
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getResources(msg.Args[0]))
+	case "everything":
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getResources("telegram")+"\n\n"+getResources("links")+"\n\n"+getResources("interest"))
+	}
+
+	return
+	/*	var key string = strings.ToLower(strings.Join(msg.Args, " "))
+		log.Print(key)
+		_, ok := resources[key]
+		if ok {
+			cb.SendTextMessage(int(msg.Chat.ID), resources[key])
+		} else {
+			var values string = ""
+			for key, _ := range resources {
+				values += key + " : " + resources[key] + "\n"
+			}
+			msg := tgbotapi.NewMessage(msg.Chat.ID, values)
+			msg.DisableWebPagePreview = true
+			msg.ParseMode = "markdown"
+			cb.SendMessage(msg)
+		} */
+}
+
+type resources struct {
+	Telegram       map[string]string `json:"telegram"`
+	Links          map[string]string `json:"links"`
+	InterestGroups map[string]string `json:"interest_groups"`
+}
+
+func getResources(code string) string { // for resources buttons
+	var (
+		resources resources
+		jsonBytes []byte
+		err       error
+	)
+
+	jsonBytes, err = ioutil.ReadFile("../resources.json")
+	if err != nil {
+		fmt.Println(err)
+	}
+	if err := json.Unmarshal(jsonBytes, &resources); err != nil {
+		fmt.Println(err)
+	}
+
+	var (
+		resourceList []string
+		resourceType map[string]string
+	)
+	switch code {
+	case "telegram":
+		resourceType = resources.Telegram
+	case "links":
+		resourceType = resources.Links
+	case "interest":
+		resourceType = resources.InterestGroups
+	}
+
+	for k, v := range resourceType {
+		resourceList = append(resourceList, fmt.Sprintf("%v : %v", k, v))
+	}
+	sort.Strings(resourceList)
+
+	return "*" + code + "*\n" + strings.Join(resourceList, "\n")
 }
 
 //Structs for weather forecast function
