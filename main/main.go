@@ -37,11 +37,6 @@ func main() {
 	cb.AddFunction("/nusbus", cb.NUSBus)
 	cb.AddFunction("/weather", cb.Weather)
 
-	cb.AddFunction("/cbs", cb.CBS)
-	cb.AddFunction("/broadcast", cb.Broadcast)
-	cb.AddFunction("/subscribe", cb.Subscribe)
-	cb.AddFunction("/unsubscribe", cb.Unsubscribe)
-
 	cb.AddFunction("/spaces", cb.Spaces)
 
 	cb.AddFunction("/feedback", cb.Feedback)

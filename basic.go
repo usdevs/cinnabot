@@ -6,12 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"math"
+
 	"net/http"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
-
+  
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/usdevs/cinnabot/model"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
@@ -62,17 +62,6 @@ func (cb *Cinnabot) Help(msg *message) {
 					"'/spaces dd/mm(/yy) dd/mm(/yy)' : to view all bookings in a specific range of dates"
 			cb.SendTextMessage(int(msg.Chat.ID), text)
 			return
-
-		} else if msg.Args[0] == "cbs" {
-			text :=
-				"/subscribe <tag>: subscribe to a tag\n" +
-					"/unsubscribe <tag>: unsubscribe from a tag\n" +
-					"/broadcast <tag>: broadcast to a tag [admin]\n" +
-					"Alternatively you can just type:\n" +
-					"/subscribe for a button list\n" +
-					"/unsubscribe for a button list\n"
-			cb.SendTextMessage(int(msg.Chat.ID), text)
-			return
 		} else if msg.Args[0] == "resources" {
 			text :=
 				"/resources <tag>: searches resources for a specific tag\n" +
@@ -90,7 +79,6 @@ func (cb *Cinnabot) Help(msg *message) {
 	text :=
 		"Here are a list of functions to get you started 🤸 \n" +
 			"/about: to find out more about me\n" +
-			"/cbs: cinnamon broadcast system\n" +
 			"/publicbus: public bus timings for bus stops around your location\n" +
 			"/nusbus: nus bus timings for bus stops around your location\n" +
 			"/weather: 2h weather forecast\n" +
@@ -104,7 +92,7 @@ func (cb *Cinnabot) Help(msg *message) {
 
 // About returns a link to Cinnabot's source code.
 func (cb *Cinnabot) About(msg *message) {
-	cb.SendTextMessage(int(msg.Chat.ID), "Touch me: https://github.com/pengnam/Cinnabot")
+	cb.SendTextMessage(int(msg.Chat.ID), "Touch me: https://github.com/usdevs/cinnabot")
 }
 
 //Link returns useful resources
@@ -287,85 +275,6 @@ func distanceBetween(Loc1 tgbotapi.Location, Loc2 tgbotapi.Location) float64 {
 	x := math.Pow((float64(Loc1.Latitude - Loc2.Latitude)), 2)
 	y := math.Pow((float64(Loc1.Longitude - Loc2.Longitude)), 2)
 	return x + y
-}
-
-//Broadcast broadcasts a message after checking for admin status [trial]
-//Admins are to first send a message with tags before sending actual message
-func (cb *Cinnabot) Broadcast(msg *message) {
-	val := checkAdmin(cb, msg)
-	if !val {
-		cb.SendTextMessage(int(msg.Chat.ID), "🤖: Im sorry! You do not seem to be one of my overlords")
-		return
-	}
-
-	if len(msg.Args) == 0 {
-		text := "🤖: Please do /broadcast <tag>\n*Tags:*\n"
-		for i := 0; i < len(cb.allTags); i += 2 {
-			text += cb.allTags[i] + "\n"
-		}
-		cb.SendTextMessage(int(msg.Chat.ID), text)
-		return
-	}
-	//Used to initialize tags in a mark-up. Ensure that people check their tags
-	if msg.ReplyToMessage == nil {
-		//Scan for tags
-		r := regexp.MustCompile(`\/\w*`)
-		locReply := r.FindStringIndex(msg.Text)
-		tags := strings.Fields(strings.ToLower(msg.Text[locReply[1]:]))
-
-		//Filter for valid tags
-		var checkedTags []string
-		for i := 0; i < len(tags); i++ {
-			if cb.db.CheckTagExists(int(msg.Chat.ID), tags[i]) {
-				checkedTags = append(checkedTags, tags[i])
-			}
-		}
-		if tags[0] == "all" {
-			checkedTags = append(checkedTags, "all")
-		}
-
-		if len(checkedTags) == 0 {
-			cb.SendTextMessage(int(msg.Chat.ID), "🤖: No valid tags found")
-			return
-		}
-
-		reminderMsg := tgbotapi.NewMessage(msg.Chat.ID, "REMINDER: Please include tag at start of message. \n Format: #<tagname1> #<tagname2> <msg>")
-		cb.SendMessage(reminderMsg)
-
-		//Send in mark-up
-		replyMsg := tgbotapi.NewMessage(msg.Chat.ID, "/broadcast "+strings.Join(checkedTags, " "))
-		replyMsg.BaseChat.ReplyToMessageID = msg.MessageID
-		replyMsg.ReplyMarkup = tgbotapi.ForceReply{ForceReply: true, Selective: true}
-		cb.SendMessage(replyMsg)
-		return
-
-	}
-
-	//Tags to send to
-	r := regexp.MustCompile(`\/\w*`)
-	locReply := r.FindStringIndex(msg.ReplyToMessage.Text)
-	tags := strings.Fields(msg.ReplyToMessage.Text[locReply[1]:])
-
-	userGroup := cb.db.UserGroup(tags)
-
-	//Forwards message to everyone in the group
-	for j := 0; j < len(userGroup); j++ {
-		forwardMess := tgbotapi.NewForward(int64(userGroup[j].UserID), msg.Chat.ID, msg.MessageID)
-		cb.SendMessage(forwardMess)
-	}
-
-	return
-}
-
-func checkAdmin(cb *Cinnabot, msg *message) bool {
-	for _, admin := range cb.keys.Admins {
-		if admin == msg.From.ID {
-			return true
-		} else if admin == int(msg.Chat.ID) {
-			return true
-		}
-	}
-	return false
 }
 
 // function to count number of users and messages
