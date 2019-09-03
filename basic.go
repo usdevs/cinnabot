@@ -244,32 +244,58 @@ func (cb *Cinnabot) NUS(msg *message) {
 
 func (cb *Cinnabot) NUSMap(msg *message) {
 	//If no args in nusbus and arg not relevant to bus
-	if len(msg.Args) == 0 || !cb.CheckArgCmdPair("/nusbus", msg.Args) {
-		opt1 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("UTown"), tgbotapi.NewKeyboardButton("Science"))
-		opt2 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Arts"), tgbotapi.NewKeyboardButton("Comp"))
-		opt3 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Law"), tgbotapi.NewKeyboardButton("Biz"))
-		opt4 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("MPSH"), tgbotapi.NewKeyboardButton("Yih/Engin"))
-		//opt5 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("MPSH"), tgbotapi.NewKeyboardButton("KR-MRT"))
+	if len(msg.Args) == 0 || !cb.CheckArgCmdPair("/map", msg.Args) {
+		opt1 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("NUS Map"))
+		opt2 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("UTown"), tgbotapi.NewKeyboardButton("Science"))
+		opt3 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Arts"), tgbotapi.NewKeyboardButton("Comp"))
+		opt4 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Law"), tgbotapi.NewKeyboardButton("Biz"))
+		opt5 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("SDE"), tgbotapi.NewKeyboardButton("Yih/Engin"))
 
-		opt6B := tgbotapi.NewKeyboardButton("NUS")
-		//opt6B.RequestLocation = true
-		opt6 := tgbotapi.NewKeyboardButtonRow(opt6B)
-
-		options := tgbotapi.NewReplyKeyboard(opt6, opt1, opt2, opt3, opt4)
+		options := tgbotapi.NewReplyKeyboard(opt1, opt2, opt3, opt4, opt5)
 
 		replyMsg := tgbotapi.NewMessage(int64(msg.Chat.ID), "🤖: Where are you?\n\n")
 		replyMsg.ReplyMarkup = options
 		cb.SendMessage(replyMsg)
 		return
 	}
+	//newmsg := tgbotapi.NewPhotoShare(int64(msg.Chat.ID), "utown.nus.edu.sg/assets/Uploads/map-krc.jpg")
+	textmsg := "🤖: Heard of NUSMODs ?\n\n It is a student intiative made to improve the lives of students!" + "\n" +
+		"They also have a function to help you find your way around!\n Click on the link below!\n\n"
 
-	if msg.Args[0] == "NUS" {
-		cb.SendTextMessage(int(msg.Chat.ID), "hello")
+	if (msg.Args[0]) == "nus" {
+		newmsg := tgbotapi.NewPhotoShare(int64(msg.Chat.ID), "utown.nus.edu.sg/assets/Uploads/map-krc.jpg")
+		_, errr := cb.bot.Send(newmsg)
+		if errr != nil {
+			fmt.Println(errr)
+		}
+		cb.SendTextMessage(int(msg.Chat.ID), "🤖: Don't get lost! ")
+		return
+
+	} else if msg.Args[0] == "utown" {
+		textmsg += "https://nusmods.com/venues/UT-AUD2"
+	} else if msg.Args[0] == "science" {
+		textmsg += "https://nusmods.com/venues/S8-0314"
+	} else if msg.Args[0] == "arts" {
+		textmsg += "https://nusmods.com/venues/AS4-0602"
+	} else if msg.Args[0] == "comp" {
+		textmsg += "https://nusmods.com/venues/COM1-0120"
+	} else if msg.Args[0] == "law" {
+		textmsg += "https://nusmods.com/venues" + "\n\n Law venues are available under 'L'!"
+		/*//cb.SendTextMessage(int(msg.Chat.ID), textmsg)
+		newmsg := tgbotapi.NewPhotoShare(int64(msg.Chat.ID), "https://law.nus.edu.sg/cals/events/ALSA2016/images/ConferenceCampusMap.jpg")
+		_, errr := cb.bot.Send(newmsg)
+		if errr != nil {
+			fmt.Println(errr)
+		}*/
+		//cb.SendTextMessage(int(msg.Chat.ID), "🤖: Don't get lost! ")
+	} else if msg.Args[0] == "biz" {
+		textmsg += "https://nusmods.com/venues/BIZ2-0115"
+	} else if msg.Args[0] == "sde" {
+		textmsg += "https://nusmods.com/venues/SDE-ER4"
+	} else if msg.Args[0] == "yih/engin" {
+		textmsg += "https://nusmods.com/venues/E3-05-21"
 	}
-
-	//responseString := MapResponse(&BSH)
-	//b.SendTextMessage(int(msg.Chat.ID), responseString)
-	//return
+	cb.SendTextMessage(int(msg.Chat.ID), textmsg)
 }
 
 //Broadcast broadcasts a message after checking for admin status [trial]
