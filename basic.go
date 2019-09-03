@@ -244,56 +244,51 @@ func (cb *Cinnabot) NUSMap(msg *message) {
 
 		options := tgbotapi.NewReplyKeyboard(opt1, opt2, opt3, opt4, opt5)
 		// Message sent upon user using /map command
-		replyMsg := tgbotapi.NewMessage(int64(msg.Chat.ID), "🤖: Where are you?\n\n")
+		replyMsg := tgbotapi.NewMessage(int64(msg.Chat.ID), "🤖: Hey "+msg.From.FirstName+"! Where are you?\n\n")
 		replyMsg.ReplyMarkup = options
 		cb.SendMessage(replyMsg)
 		return
 	}
 
-	textmsg := "🤖: Heard of NUSMODs ?\n\n It is a student intiative made to improve the lives of students!" + "\n" +
+	textmsg := "🤖: " + "Hey " + msg.From.FirstName + ", heard of NUSMODs ?\n\n " +
+		"It is a student intiative made to improve the lives of students!" + "\n" +
 		"They also have a function to help you find your way around!\n Click on the link below!\n\n"
 
 	// String filepath to hold file path of Map files
-	filepath := ""
+	var filepath string
 
 	// Depending on button pressed, change textmsg and filepath
-	// For 'nus' as the filepath is a URL, use NewPhotoShare instead of NewPhotoUpload
 	if (msg.Args[0]) == "nus" {
 		filepath = "utown.nus.edu.sg/assets/Uploads/map-krc.jpg"
 		textmsg += "https://nusmods.com/venues"
-		newmsg := tgbotapi.NewPhotoShare(int64(msg.Chat.ID), filepath)
-		_, errr := cb.bot.Send(newmsg)
-		if errr != nil {
-			fmt.Println(errr)
-		}
 	} else if msg.Args[0] == "utown" {
 		textmsg += "https://nusmods.com/venues/UT-AUD2"
-		filepath = "/Users/seanlowcy77/go/src/github.com/usdevs/cinnabot/UTown Map.png"
+		filepath = "https://raw.githubusercontent.com/usdevs/cinnabot/map_function/UTown%20Map.png"
 	} else if msg.Args[0] == "science" {
 		textmsg += "https://nusmods.com/venues/S8-0314"
-		filepath = "/Users/seanlowcy77/go/src/github.com/usdevs/cinnabot/Science Map.png"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Science%20Map.png?raw=true"
 	} else if msg.Args[0] == "arts" {
 		textmsg += "https://nusmods.com/venues/AS4-0602"
-		filepath = "/Users/seanlowcy77/go/src/github.com/usdevs/cinnabot/FASS Map.png"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/FASS%20Map.png?raw=true"
 	} else if msg.Args[0] == "comp" {
 		textmsg += "https://nusmods.com/venues/COM1-0120"
-		filepath = "/Users/seanlowcy77/go/src/github.com/usdevs/cinnabot/Computing Map.png"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Computing%20Map.png?raw=true"
 	} else if msg.Args[0] == "law" {
-		textmsg += "https://nusmods.com/venues" + "\n\n Law venues are available under 'L'!"
-		filepath = "/Users/seanlowcy77/go/src/github.com/usdevs/cinnabot/Law Map.png"
+		textmsg += "https://nusmods.com/venues" + "\n\n PS: Law venues are available under 'L'!"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Law%20Map.png?raw=true"
 	} else if msg.Args[0] == "biz" {
 		textmsg += "https://nusmods.com/venues/BIZ2-0115"
-		filepath = "/Users/seanlowcy77/go/src/github.com/usdevs/cinnabot/Biz Map.png"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Biz%20Map.png?raw=true"
 	} else if msg.Args[0] == "sde" {
 		textmsg += "https://nusmods.com/venues/SDE-ER4"
-		filepath = "/Users/seanlowcy77/go/src/github.com/usdevs/cinnabot/SDE.png"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/SDE.png?raw=true"
 	} else if msg.Args[0] == "yih/engin" {
 		textmsg += "https://nusmods.com/venues/E3-05-21"
-		filepath = "/Users/seanlowcy77/go/src/github.com/usdevs/cinnabot/Engineering Map.png"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Engineering%20Map.png?raw=true"
 	}
 
-	// Use NewPhotoUpload to upload Map Photo
-	newmsg := tgbotapi.NewPhotoUpload(int64(msg.Chat.ID), filepath)
+	// Use NewPhotoShare to share Map Photo
+	newmsg := tgbotapi.NewPhotoShare(int64(msg.Chat.ID), filepath)
 	_, errr := cb.bot.Send(newmsg)
 	if errr != nil {
 		fmt.Println(errr)
