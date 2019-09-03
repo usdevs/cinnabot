@@ -182,20 +182,20 @@ func getResources(code string) string { // for resources buttons
 
 //Structs for weather forecast function
 type WeatherForecast struct {
-	AM []AreaMetadata `json:"area_metadata"`
-	FD []ForecastData `json:"items"`
+	AM []areaMetadata `json:"area_metadata"`
+	FD []forecastData `json:"items"`
 }
 
-type AreaMetadata struct {
+type areaMetadata struct {
 	Name string            `json:"name"`
 	Loc  tgbotapi.Location `json:"label_location"`
 }
 
-type ForecastData struct {
-	FMD []ForecastMetadata `json:"forecasts"`
+type forecastData struct {
+	FMD []forecastMetadata `json:"forecasts"`
 }
 
-type ForecastMetadata struct {
+type forecastMetadata struct {
 	Name     string `json:"area"`
 	Forecast string `json:"forecast"`
 }
@@ -235,8 +235,8 @@ func (cb *Cinnabot) Weather(msg *message) {
 
 	wf := WeatherForecast{}
 	if err := json.Unmarshal(responseData, &wf); err != nil {
+		cb.SendTextMessage(int(msg.Chat.ID), "Failed to get weather")
 		log.Fatal(err)
-		return
 	}
 
 	lowestDistance := distanceBetween(wf.AM[0].Loc, *loc)
