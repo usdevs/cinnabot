@@ -121,7 +121,7 @@ type serviceResult struct {
 
 type shuttle struct {
 	ArrivalTime     string `json:"arrivalTime"`
-	NextArrivalTime string `json:"nextArrivalTime`
+	NextArrivalTime string `json:"nextArrivalTime"`
 	Name            string `json:"name"`
 }
 
