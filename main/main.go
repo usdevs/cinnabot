@@ -32,6 +32,7 @@ func main() {
 	cb.AddFunction("/help", cb.Help)
 	cb.AddFunction("/stats", cb.GetStats)
 
+	cb.AddFunction("/map", cb.NUSMap)
 	cb.AddFunction("/resources", cb.Resources)
 	cb.AddFunction("/publicbus", cb.BusTimings)
 	cb.AddFunction("/nusbus", cb.NUSBus)
