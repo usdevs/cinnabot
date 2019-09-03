@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-  
+
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/usdevs/cinnabot/model"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
@@ -260,7 +260,11 @@ func (cb *Cinnabot) Weather(msg *message) {
 
 	//Parsing forecast
 	words := strings.Fields(forecast)
-	forecast = strings.ToLower(strings.Join(words[:len(words)-1], " "))
+	if len(words) > 1 {
+		forecast = strings.ToLower(strings.Join(words[:len(words)-1], " "))
+	} else {
+		forecast = strings.ToLower(forecast)
+	}
 
 	responseString := "🤖: The 2h forecast is " + forecast + " for " + nameMinLoc
 	returnMsg := tgbotapi.NewMessage(msg.Chat.ID, responseString)
