@@ -251,7 +251,7 @@ func (cb *Cinnabot) Weather(msg *message) {
 	log.Print("The closest location is " + nameMinLoc)
 
 	var forecast string
-	for i, _ := range wf.FD[0].FMD {
+	for i := range wf.FD[0].FMD {
 		if wf.FD[0].FMD[i].Name == nameMinLoc {
 			forecast = wf.FD[0].FMD[i].Forecast
 			break
