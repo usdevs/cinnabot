@@ -36,6 +36,7 @@ func main() {
 	cb.AddFunction("/publicbus", cb.BusTimings)
 	cb.AddFunction("/nusbus", cb.NUSBus)
 	cb.AddFunction("/weather", cb.Weather)
+	cb.AddFunction("/map", cb.NUSMap)
 
 	cb.AddFunction("/cbs", cb.CBS)
 	cb.AddFunction("/broadcast", cb.Broadcast)

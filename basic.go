@@ -1,6 +1,7 @@
 package cinnabot
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,9 +12,9 @@ import (
 	"math"
 	"regexp"
 
-	"github.com/usdevs/cinnabot/model"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"gopkg.in/telegram-bot-api.v4"
+	"github.com/usdevs/cinnabot/model"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 //Test functions [Not meant to be used in bot]
@@ -95,7 +96,8 @@ func (cb *Cinnabot) Help(msg *message) {
 			"/weather: 2h weather forecast\n" +
 			"/resources: list of important resources!\n" +
 			"/spaces: list of space bookings\n" +
-			"/feedback: to give feedback\n\n" +
+			"/feedback: to give feedback\n" +
+			"/map: to get a map of NUS if you're lost!\n\n" +
 			"_*My creator actually snuck in a few more functions🕺 *_\n" +
 			"Try using /help <func name> to see what I can _really_ do"
 	cb.SendTextMessage(int(msg.Chat.ID), text)
@@ -114,6 +116,8 @@ func (cb *Cinnabot) Resources(msg *message) {
 	resources["spaces"] = "[spaces web](http://www.nususc.com/Spaces.aspx)"
 	resources["usc"] = "[usc web](http://www.nususc.com/MainPage.aspx)"
 	resources["study groups"] = "@USPhonebook\\_bot"
+	resources["FOP page"] = "[FOP2019](https://www.facebook.com/uscfop19/)"
+	resources["LIN"] = "[LINTIME](https://www.facebook.com/lin.yuan.353)"
 
 	var key string = strings.ToLower(strings.Join(msg.Args, " "))
 	log.Print(key)
@@ -183,7 +187,7 @@ func (cb *Cinnabot) Weather(msg *message) {
 	req.Header.Set("api-key", "d1Y8YtThOpkE5QUfQZmvuA3ktrHa1uWP")
 
 	resp, _ := client.Do(req)
-	responseData, _ := ioutil.ReadAll(resp.Body)
+	responseData, _ := ioutil.ReadAll(resp.Body) // Sean: reading data to check if there is an error??
 
 	wf := WeatherForecast{}
 	if err := json.Unmarshal(responseData, &wf); err != nil {
@@ -227,6 +231,45 @@ func distanceBetween(Loc1 tgbotapi.Location, Loc2 tgbotapi.Location) float64 {
 	x := math.Pow((float64(Loc1.Latitude - Loc2.Latitude)), 2)
 	y := math.Pow((float64(Loc1.Longitude - Loc2.Longitude)), 2)
 	return x + y
+}
+
+//Function to send Map of NUS
+func (cb *Cinnabot) NUS(msg *message) {
+	newmsg := tgbotapi.NewPhotoShare(int64(msg.Chat.ID), "utown.nus.edu.sg/assets/Uploads/map-krc.jpg")
+	_, errr := cb.bot.Send(newmsg)
+	if errr != nil {
+		fmt.Println(errr)
+	}
+}
+
+func (cb *Cinnabot) NUSMap(msg *message) {
+	//If no args in nusbus and arg not relevant to bus
+	if len(msg.Args) == 0 || !cb.CheckArgCmdPair("/nusbus", msg.Args) {
+		opt1 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("UTown"), tgbotapi.NewKeyboardButton("Science"))
+		opt2 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Arts"), tgbotapi.NewKeyboardButton("Comp"))
+		opt3 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Law"), tgbotapi.NewKeyboardButton("Biz"))
+		opt4 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("MPSH"), tgbotapi.NewKeyboardButton("Yih/Engin"))
+		//opt5 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("MPSH"), tgbotapi.NewKeyboardButton("KR-MRT"))
+
+		opt6B := tgbotapi.NewKeyboardButton("NUS")
+		//opt6B.RequestLocation = true
+		opt6 := tgbotapi.NewKeyboardButtonRow(opt6B)
+
+		options := tgbotapi.NewReplyKeyboard(opt6, opt1, opt2, opt3, opt4)
+
+		replyMsg := tgbotapi.NewMessage(int64(msg.Chat.ID), "🤖: Where are you?\n\n")
+		replyMsg.ReplyMarkup = options
+		cb.SendMessage(replyMsg)
+		return
+	}
+
+	if msg.Args[0] == "NUS" {
+		cb.SendTextMessage(int(msg.Chat.ID), "hello")
+	}
+
+	//responseString := MapResponse(&BSH)
+	//b.SendTextMessage(int(msg.Chat.ID), responseString)
+	//return
 }
 
 //Broadcast broadcasts a message after checking for admin status [trial]

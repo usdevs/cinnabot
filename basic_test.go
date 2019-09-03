@@ -5,10 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/mock"
-	"gopkg.in/telegram-bot-api.v4"
 	"io"
 	"io/ioutil"
+
+	"github.com/stretchr/testify/mock"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 
 	"github.com/usdevs/cinnabot/model"
 )
