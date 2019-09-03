@@ -158,34 +158,37 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		responseString := nusBusTimingResponse(&BSH)
 		cb.SendTextMessage(int(msg.Chat.ID), responseString)
 		return
-	} else if msg.Args[0] == "utown" {
+	}
+
+	switch msg.Args[0] {
+	case "utown":
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("UTOWN"))
 		return
-	} else if msg.Args[0] == "science" {
+	case "science":
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("S17")+"\n\n"+getBusTimings("LT27"))
 		return
-	} else if msg.Args[0] == "kr-mrt" {
+	case "kr-mrt":
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("KR-MRT-OPP")+"\n\n"+getBusTimings("KR-MRT"))
 		return
-	} else if msg.Args[0] == "mpsh" {
+	case "mpsh":
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("STAFFCLUB")+"\n\n"+getBusTimings("STAFFCLUB-OPP"))
 		return
-	} else if msg.Args[0] == "arts" {
+	case "arts":
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("LT13-OPP")+"\n\n"+getBusTimings("LT13")+"\n\n"+getBusTimings("AS7"))
 		return
-	} else if msg.Args[0] == "yih/engin" {
+	case "yih/engin":
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("YIH-OPP")+"\n\n"+getBusTimings("YIH")+"\n\n"+getBusTimings("MUSEUM")+"\n\n"+getBusTimings("RAFFLES"))
 		return
-	} else if msg.Args[0] == "comp" {
+	case "comp":
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("COM2"))
 		return
-	} else if msg.Args[0] == "biz" {
+	case "biz":
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("HSSML-OPP")+"\n\n"+getBusTimings("BIZ2")+"\n\n"+getBusTimings("NUSS-OPP"))
 		return
-	} else if msg.Args[0] == "cenlib" {
+	case "cenlib":
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("COMCEN")+"\n\n"+getBusTimings("CENLIB"))
 		return
-	} else if msg.Args[0] == "law" {
+	case "law":
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("BUKITTIMAH-BTC2"))
 		return
 	}
