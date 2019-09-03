@@ -267,11 +267,7 @@ func (cb *Cinnabot) Weather(msg *message) {
 	}
 
 	responseString := "🤖: The 2h forecast is " + forecast + " for " + nameMinLoc
-	returnMsg := tgbotapi.NewMessage(msg.Chat.ID, responseString)
-	returnMsg.ParseMode = "Markdown"
-	returnMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-	cb.SendMessage(returnMsg)
-
+	cb.SendTextMessage(int(msg.Chat.ID), responseString)
 }
 
 //Helper funcs for weather
