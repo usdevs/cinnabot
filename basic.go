@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-  
+
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/usdevs/cinnabot/model"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
@@ -182,20 +182,20 @@ func getResources(code string) string { // for resources buttons
 
 //Structs for weather forecast function
 type WeatherForecast struct {
-	AM []AreaMetadata `json:"area_metadata"`
-	FD []ForecastData `json:"items"`
+	AM []areaMetadata `json:"area_metadata"`
+	FD []forecastData `json:"items"`
 }
 
-type AreaMetadata struct {
+type areaMetadata struct {
 	Name string            `json:"name"`
 	Loc  tgbotapi.Location `json:"label_location"`
 }
 
-type ForecastData struct {
-	FMD []ForecastMetadata `json:"forecasts"`
+type forecastData struct {
+	FMD []forecastMetadata `json:"forecasts"`
 }
 
-type ForecastMetadata struct {
+type forecastMetadata struct {
 	Name     string `json:"area"`
 	Forecast string `json:"forecast"`
 }
@@ -235,8 +235,8 @@ func (cb *Cinnabot) Weather(msg *message) {
 
 	wf := WeatherForecast{}
 	if err := json.Unmarshal(responseData, &wf); err != nil {
+		cb.SendTextMessage(int(msg.Chat.ID), "Failed to get weather")
 		log.Fatal(err)
-		return
 	}
 
 	lowestDistance := distanceBetween(wf.AM[0].Loc, *loc)
@@ -251,7 +251,7 @@ func (cb *Cinnabot) Weather(msg *message) {
 	log.Print("The closest location is " + nameMinLoc)
 
 	var forecast string
-	for i, _ := range wf.FD[0].FMD {
+	for i := range wf.FD[0].FMD {
 		if wf.FD[0].FMD[i].Name == nameMinLoc {
 			forecast = wf.FD[0].FMD[i].Forecast
 			break
@@ -260,14 +260,14 @@ func (cb *Cinnabot) Weather(msg *message) {
 
 	//Parsing forecast
 	words := strings.Fields(forecast)
-	forecast = strings.ToLower(strings.Join(words[:len(words)-1], " "))
+	if len(words) > 1 {
+		forecast = strings.ToLower(strings.Join(words[:len(words)-1], " "))
+	} else {
+		forecast = strings.ToLower(forecast)
+	}
 
 	responseString := "🤖: The 2h forecast is " + forecast + " for " + nameMinLoc
-	returnMsg := tgbotapi.NewMessage(msg.Chat.ID, responseString)
-	returnMsg.ParseMode = "Markdown"
-	returnMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-	cb.SendMessage(returnMsg)
-
+	cb.SendTextMessage(int(msg.Chat.ID), responseString)
 }
 
 //Helper funcs for weather
