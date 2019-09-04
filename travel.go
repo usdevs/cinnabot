@@ -195,9 +195,31 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 	}
 	*/
 
-	// Seperate data from logic
-	// This should be moved to database, but here now for testing
-	params := map[string][]string {
+	/*
+		Seperate data from logic (Here for testing but should be moved to database)
+		Could be implemented with...
+		>  antialias := map[string]int
+		>  locations := [][]string
+		...but this is more readable and easier to maintain.
+	*/
+
+	// maps user arguments to a key recognised by the locations map
+	aliases := map[string]string{
+		"Utown": "utown",
+		"Science": "science",
+		"kr": "kr-mrt",
+		"MPSH": "mpsh",
+		"Arts": "arts",
+		"yih": "yih/engin",
+		"engin": "yih/engin",
+		"Com": "comp",
+		"Biz": "biz",
+		"Cenlib": "cenlib",
+		"Law": "law",
+	}
+
+	// groups of locations that should be returned together
+	locations := map[string][]string {
 		"utown": {"UTOWN"},
 		"science": {"S17", "LT27"},
 		"kr-mrt": {"KR-MRT", "KR-MRT-OPP"},
@@ -210,24 +232,30 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		"law": {"BUKITTIMAH-BTC2"},
 	}
 
-	// Future support for aliases
-	// alias := map[string][]string{
-		// }
+	alias, has_alias := aliases[msg.Args[0]]
+	locs, in_locs := locations[msg.Args[0]]
 
-	locations, ok := params[msg.Args[0]]
-	if ok == false {
-		return // Reply some error message here
+	if has_alias {
+		locs, in_locs = locations[alias]
+	}
+
+	if in_locs == false {
+		// Send some error message to user also
+		return
 	}
 
 	// Format response
 	lines := make([]string, 0)
-	for _, loc := range locations {
+	for _, loc := range locs {
 		lines = append(lines, getBusTimings(loc))
 	}
 	responseString := strings.Join(lines, "\n\n")
 	responseKeyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Refresh", "refresh "+"{chat id here}"),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("All locations", "home "+"{chat id here}"),
 		),
 	)
 
