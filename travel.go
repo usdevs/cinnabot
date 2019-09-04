@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
@@ -156,8 +157,11 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		//Returns a heap of busstop data (sorted)
 		BSH := makeNUSHeap(*loc)
 		responseString := nusBusTimingResponse(&BSH)
-		cb.SendTextMessage(int(msg.Chat.ID), responseString)
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+responseString)
 		return
+	}
+
+	/* Uncomment for panic revert I guess
 	} else if msg.Args[0] == "utown" {
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("UTOWN"))
 		return
@@ -189,6 +193,48 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("BUKITTIMAH-BTC2"))
 		return
 	}
+	*/
+
+	// Seperate data from logic
+	// This should be moved to database, but here now for testing
+	params := map[string][]string {
+		"utown": {"UTOWN"},
+		"science": {"S17", "LT27"},
+		"kr-mrt": {"KR-MRT", "KR-MRT-OPP"},
+		"mpsh": {"STAFFCLUB", "STAFFCLUB-OPP"},
+		"arts": {"LT13", "LT13-OPP", "AS7"},
+		"yih/engin": {"YIH", "YIH-OPP", "MUSEUM", "RAFFLES"},
+		"comp": {"COM2"},
+		"biz": {"HSSML-OPP", "BIZ2", "NUSS-OPP"},
+		"cenlib": {"COMCEN", "CENLIB"},
+		"law": {"BUKITTIMAH-BTC2"},
+	}
+
+	// Future support for aliases
+	// alias := map[string][]string{
+		// }
+
+	locations, ok := params[msg.Args[0]]
+	if ok == false {
+		return // Reply some error message here
+	}
+
+	// Format response
+	lines := make([]string, 0)
+	for _, loc := range locations {
+		lines = append(lines, getBusTimings(loc))
+	}
+	responseString := strings.Join(lines, "\n\n")
+	responseKeyboard := tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Refresh", "refresh "+"{chat id here}"),
+		),
+	)
+
+	// Send response with refresh button
+	response := tgbotapi.NewMessage(msg.Chat.ID, robotSays+responseString)
+	response.ReplyMarkup = responseKeyboard
+	cb.SendMessage(response)
 }
 
 //makeNUSHeap returns a heap for NUS Bus timings
