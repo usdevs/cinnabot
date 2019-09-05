@@ -6,8 +6,9 @@ import (
 	"os"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/usdevs/cinnabot"
+	// "github.com/usdevs/cinnabot"
 	"github.com/usdevs/cinnabot/model"
+	"github.com/usdevs/cinnabot/callbacks"
 )
 
 func main() {
@@ -18,7 +19,7 @@ func main() {
 
 	logger := log.New(os.Stdout, "[cinnabot] ", 0)
 
-	cb := cinnabot.InitCinnabot(configJSON, logger)
+	cb := callbacks.InitCinnabotPatch(configJSON, logger)
 	db := model.InitializeDB()
 
 	//Junk functions
@@ -49,6 +50,9 @@ func main() {
 
 	cb.AddFunction("/cancel", cb.Cancel)
 
+	// Callback handlers
+	// cb.addHandler("//refreshbustiming", cb.RefreshBusTiming)
+
 	updates := cb.Listen(60)
 	log.Println("Listening...")
 
@@ -58,6 +62,9 @@ func main() {
 			db.Add(&modelMsg)
 			db.Add(&modelUsr)
 			cb.Router(*update.Message)
+		}
+		if update.CallbackQuery != nil {
+			cb.Handle(*update.CallbackQuery)
 		}
 	}
 
