@@ -8,7 +8,6 @@ import (
 	"math"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -157,11 +156,8 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		//Returns a heap of busstop data (sorted)
 		BSH := makeNUSHeap(*loc)
 		responseString := nusBusTimingResponse(&BSH)
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+responseString)
+		cb.SendTextMessage(int(msg.Chat.ID), responseString)
 		return
-	}
-
-	/* Uncomment for panic revert I guess
 	} else if msg.Args[0] == "utown" {
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("UTOWN"))
 		return
@@ -193,76 +189,6 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("BUKITTIMAH-BTC2"))
 		return
 	}
-	*/
-
-	/*
-		Seperate data from logic (Here for testing but should be moved to database)
-		Could be implemented with...
-		>  antialias := map[string]int
-		>  locations := [][]string
-		...but this is more readable and easier to maintain.
-	*/
-
-	// maps user arguments to a key recognised by the locations map
-	aliases := map[string]string{
-		"Utown": "utown",
-		"Science": "science",
-		"kr": "kr-mrt",
-		"MPSH": "mpsh",
-		"Arts": "arts",
-		"yih": "yih/engin",
-		"engin": "yih/engin",
-		"Com": "comp",
-		"Biz": "biz",
-		"Cenlib": "cenlib",
-		"Law": "law",
-	}
-
-	// groups of locations that should be returned together
-	locations := map[string][]string {
-		"utown": {"UTOWN"},
-		"science": {"S17", "LT27"},
-		"kr-mrt": {"KR-MRT", "KR-MRT-OPP"},
-		"mpsh": {"STAFFCLUB", "STAFFCLUB-OPP"},
-		"arts": {"LT13", "LT13-OPP", "AS7"},
-		"yih/engin": {"YIH", "YIH-OPP", "MUSEUM", "RAFFLES"},
-		"comp": {"COM2"},
-		"biz": {"HSSML-OPP", "BIZ2", "NUSS-OPP"},
-		"cenlib": {"COMCEN", "CENLIB"},
-		"law": {"BUKITTIMAH-BTC2"},
-	}
-
-	alias, has_alias := aliases[msg.Args[0]]
-	locs, in_locs := locations[msg.Args[0]]
-
-	if has_alias {
-		locs, in_locs = locations[alias]
-	}
-
-	if in_locs == false {
-		// Send some error message to user also
-		return
-	}
-
-	// Format response
-	lines := make([]string, 0)
-	for _, loc := range locs {
-		lines = append(lines, getBusTimings(loc))
-	}
-	responseString := strings.Join(lines, "\n\n")
-	responseKeyboard := tgbotapi.NewInlineKeyboardMarkup(
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Refresh", "refresh "+"{chat id here}"),
-		),
-		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("All locations", "home "+"{chat id here}"),
-		),
-	)
-
-	// Send response with refresh button
-	response := tgbotapi.NewMessage(msg.Chat.ID, robotSays+responseString)
-	response.ReplyMarkup = responseKeyboard
-	cb.SendMessage(response)
 }
 
 //makeNUSHeap returns a heap for NUS Bus timings
