@@ -1,4 +1,4 @@
-package callbacks
+package cinnabot
 
 import (
 	"fmt"
@@ -8,13 +8,14 @@ import (
 	"time"
 
 	cache 		"github.com/patrickmn/go-cache"
-	cinnabot 	"github.com/usdevs/cinnabot"
+	// cinnabot 	"github.com/usdevs/cinnabot"
 	tgbotapi 	"gopkg.in/telegram-bot-api.v4"
 )
 
 // Wrapper struct for a callback query
 type callback struct {
 	ChatID 	int64
+	MsgID   int
 	Cmd 		string
 	Args 		[]string
 	*tgbotapi.CallbackQuery
@@ -32,11 +33,11 @@ type CinnabotPatch struct {
 	hmap map[string]CallbackFunc // Maps a callback command to a handler function
 	cache   *cache.Cache
 	log     *log.Logger
-	*cinnabot.Cinnabot
+	*Cinnabot
 }
 
 // Addhandler binds a handler function to a callback cmd string in Cinnabot's HandlerMap
-func (cb *CinnabotPatch) Addhandler(command string, resp CallbackFunc) error {
+func (cb *CinnabotPatch) AddHandler(command string, resp CallbackFunc) error {
 	if !strings.HasPrefix(command, "//") {
 		return fmt.Errorf("not a valid callback string - it should be of the format //cmd [args]")
 	}
@@ -67,11 +68,11 @@ func (cb *CinnabotPatch) Handle(qry tgbotapi.CallbackQuery) {
 func (cb *CinnabotPatch) parseCallback(qry *tgbotapi.CallbackQuery) *callback {
 	// Should add some error checking
 	chatID := qry.Message.Chat.ID
+	MsgID := qry.Message.MessageID
 	qryTokens := strings.Fields(qry.Data)
 	cmd, args := strings.ToLower(qryTokens[0]), qryTokens[1:]
-	return &callback{ChatID: chatID, Cmd: cmd, Args: args, CallbackQuery: qry}
+	return &callback{ChatID: chatID, MsgID: MsgID, Cmd: cmd, Args: args, CallbackQuery: qry}
 }
-
 
 // InitCinnabot initializes an instance of Cinnabot.
 func InitCinnabotPatch(configJSON []byte, lg *log.Logger) *CinnabotPatch {
@@ -83,7 +84,7 @@ func InitCinnabotPatch(configJSON []byte, lg *log.Logger) *CinnabotPatch {
 		hmap: 		make(map[string]CallbackFunc),
 		log: 			lg,
 		cache: 		cache.New(1*time.Minute, 2*time.Minute),
-		Cinnabot: cinnabot.InitCinnabot(configJSON, lg),
+		Cinnabot: InitCinnabot(configJSON, lg),
 	}
 
 	return cb
