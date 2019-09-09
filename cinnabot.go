@@ -170,7 +170,7 @@ func (cb *Cinnabot) Router(msg tgbotapi.Message) {
 	}
 }
 
-// Checks if arg can be used with command
+// CheckArgCmdPair checks if arg can be used with command
 // Used to supplement cache as cache only records functions as states
 func (cb *Cinnabot) CheckArgCmdPair(cmd string, args []string) bool {
 	key := "" //Messages with no text in message
