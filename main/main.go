@@ -18,7 +18,7 @@ func main() {
 
 	logger := log.New(os.Stdout, "[cinnabot] ", 0)
 
-	cb := cinnabot.InitCinnabotPatch(configJSON, logger)
+	cb := cinnabot.InitCinnabot(configJSON, logger)
 	db := model.InitializeDB()
 
 	//Junk functions
