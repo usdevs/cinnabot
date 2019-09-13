@@ -7,17 +7,16 @@ import (
 	"strings"
 	"time"
 
-	cache 		"github.com/patrickmn/go-cache"
-	// cinnabot 	"github.com/usdevs/cinnabot"
-	tgbotapi 	"gopkg.in/telegram-bot-api.v4"
+	cache "github.com/patrickmn/go-cache"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 // Wrapper struct for a callback query
 type callback struct {
-	ChatID 	int64
-	MsgID   int
-	Cmd 		string
-	Args 		[]string
+	ChatID int64
+	MsgID  int
+	Cmd    string
+	Args   []string
 	*tgbotapi.CallbackQuery
 }
 
@@ -30,9 +29,9 @@ type CallbackFunc func(*callback)
 
 // Patch the cinnabot with support for callbacks
 type CinnabotPatch struct {
-	hmap map[string]CallbackFunc // Maps a callback command to a handler function
-	cache   *cache.Cache
-	log     *log.Logger
+	hmap  map[string]CallbackFunc // Maps a callback command to a handler function
+	cache *cache.Cache
+	log   *log.Logger
 	*Cinnabot
 }
 
@@ -81,9 +80,9 @@ func InitCinnabotPatch(configJSON []byte, lg *log.Logger) *CinnabotPatch {
 	}
 
 	cb := &CinnabotPatch{
-		hmap: 		make(map[string]CallbackFunc),
-		log: 			lg,
-		cache: 		cache.New(1*time.Minute, 2*time.Minute),
+		hmap:     make(map[string]CallbackFunc),
+		log:      lg,
+		cache:    cache.New(1*time.Minute, 2*time.Minute),
 		Cinnabot: InitCinnabot(configJSON, lg),
 	}
 
