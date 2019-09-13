@@ -267,7 +267,7 @@ func getLocationTimings(code string) (string, bool) {
 		for _, loc := range locs {
 			lines = append(lines, getBusTimings(loc))
 		}
-		lines = append(lines, "Last updated: " + time.Now().Format(time.RFC822))
+		lines = append(lines, "Last updated: "+time.Now().Format(time.RFC822))
 		responseString = strings.Join(lines, "\n\n")
 	}
 	return responseString, ok
