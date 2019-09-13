@@ -8,22 +8,52 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
-// BusTimes stores a list of Services
-type BusTimes struct {
-	Services []service `json:"Services"`
+// maps user arguments to a key recognised by the locations map
+var aliases = map[string]string{
+	"Utown":   "utown",
+	"Science": "science",
+	"kr":      "kr-mrt",
+	"MPSH":    "mpsh",
+	"Arts":    "arts",
+	"yih":     "yih/engin",
+	"engin":   "yih/engin",
+	"Com":     "comp",
+	"Biz":     "biz",
+	"Cenlib":  "cenlib",
+	"Law":     "law",
 }
 
-type service struct {
+// groups of locations that should be returned together
+var locations = map[string][]string{
+	"utown":     {"UTOWN"},
+	"science":   {"S17", "LT27"},
+	"kr-mrt":    {"KR-MRT", "KR-MRT-OPP"},
+	"mpsh":      {"STAFFCLUB", "STAFFCLUB-OPP"},
+	"arts":      {"LT13", "LT13-OPP", "AS7"},
+	"yih/engin": {"YIH", "YIH-OPP", "MUSEUM", "RAFFLES"},
+	"comp":      {"COM2"},
+	"biz":       {"HSSML-OPP", "BIZ2", "NUSS-OPP"},
+	"cenlib":    {"COMCEN", "CENLIB"},
+	"law":       {"BUKITTIMAH-BTC2"},
+}
+
+//Structs for BusTiming
+type BusTimes struct {
+	Services []Service `json:"Services"`
+}
+
+type Service struct {
 	ServiceNum string  `json:"ServiceNo"`
 	Next       NextBus `json:"NextBus"`
 }
 
-// NextBus stores the estimated arrival timing
 type NextBus struct {
 	EstimatedArrival string `json:"EstimatedArrival"`
 }
@@ -111,15 +141,15 @@ func busTimingResponse(BSH *BusStopHeap) string {
 	return returnMessage
 }
 
-// Response is used by NUSBusTimes for unmarshalling
+//NUSBusTimes structs for unmarshalling
 type Response struct {
-	Result serviceResult `json:"ShuttleServiceResult"`
+	Result ServiceResult `json:"ShuttleServiceResult"`
 }
-type serviceResult struct {
-	Shuttles []shuttle `json:"shuttles"`
+type ServiceResult struct {
+	Shuttles []Shuttle `json:"shuttles"`
 }
 
-type shuttle struct {
+type Shuttle struct {
 	ArrivalTime     string `json:"arrivalTime"`
 	NextArrivalTime string `json:"nextArrivalTime"`
 	Name            string `json:"name"`
@@ -140,6 +170,9 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		opt6 := tgbotapi.NewKeyboardButtonRow(opt6B)
 
 		options := tgbotapi.NewReplyKeyboard(opt6, opt1, opt2, opt3, opt4, opt5)
+		options.ResizeKeyboard = true
+		options.OneTimeKeyboard = true
+		options.Selective = true
 
 		replyMsg := tgbotapi.NewMessage(int64(msg.Chat.ID), "🤖: Where are you?\n\n")
 		replyMsg.ReplyMarkup = options
@@ -149,7 +182,6 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 
 	//Default loc: Cinnamon
 	loc := &tgbotapi.Location{Latitude: 1.306671, Longitude: 103.773556}
-	robotSays := "🤖: Here are the bus timings\n\n"
 
 	if msg.Location != nil {
 		loc = msg.Location
@@ -158,37 +190,55 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		responseString := nusBusTimingResponse(&BSH)
 		cb.SendTextMessage(int(msg.Chat.ID), responseString)
 		return
-	} else if msg.Args[0] == "utown" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("UTOWN"))
-		return
-	} else if msg.Args[0] == "science" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("S17")+"\n\n"+getBusTimings("LT27"))
-		return
-	} else if msg.Args[0] == "kr-mrt" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("KR-MRT-OPP")+"\n\n"+getBusTimings("KR-MRT"))
-		return
-	} else if msg.Args[0] == "mpsh" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("STAFFCLUB")+"\n\n"+getBusTimings("STAFFCLUB-OPP"))
-		return
-	} else if msg.Args[0] == "arts" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("LT13-OPP")+"\n\n"+getBusTimings("LT13")+"\n\n"+getBusTimings("AS7"))
-		return
-	} else if msg.Args[0] == "yih/engin" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("YIH-OPP")+"\n\n"+getBusTimings("YIH")+"\n\n"+getBusTimings("MUSEUM")+"\n\n"+getBusTimings("RAFFLES"))
-		return
-	} else if msg.Args[0] == "comp" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("COM2"))
-		return
-	} else if msg.Args[0] == "biz" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("HSSML-OPP")+"\n\n"+getBusTimings("BIZ2")+"\n\n"+getBusTimings("NUSS-OPP"))
-		return
-	} else if msg.Args[0] == "cenlib" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("COMCEN")+"\n\n"+getBusTimings("CENLIB"))
-		return
-	} else if msg.Args[0] == "law" {
-		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getBusTimings("BUKITTIMAH-BTC2"))
+	}
+
+	// Check for aliases
+	code := msg.Args[0]
+	alias, has_alias := aliases[code]
+	if has_alias {
+		code = alias
+	}
+
+	// Build response components
+	responseString, ok := getLocationTimings(code)
+	if !ok {
+		cb.SendTextMessage(int(msg.Chat.ID), "Invalid location!")
 		return
 	}
+	responseKeyboard := makeNUSBusKeyboard(code)
+
+	// Send response with refresh button
+	response := tgbotapi.NewMessage(msg.Chat.ID, responseString)
+	response.ReplyMarkup = responseKeyboard
+	cb.SendMessage(response)
+}
+
+func (cb *Cinnabot) NUSBusResfresh(qry *callback) {
+	code := qry.GetArgString()
+	responseString, ok := getLocationTimings(code)
+	if !ok {
+		cb.SendTextMessage(int(qry.ChatID), "Something went wrong while refreshing bus timings")
+		return
+	}
+	responseKeyboard := makeNUSBusKeyboard(code)
+	msg := tgbotapi.NewEditMessageText(qry.ChatID, qry.MsgID, responseString)
+	msg.ReplyMarkup = &responseKeyboard
+	cb.SendMessage(msg)
+}
+
+func (cb *Cinnabot) NUSBusHome(qry *callback) {
+	return // To be implemented if bus times is migrated to inline keyboard
+}
+
+func makeNUSBusKeyboard(code string) tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Refresh", "//nusbus_refresh "+code),
+		),
+		// tgbotapi.NewInlineKeyboardRow(
+		// 	tgbotapi.NewInlineKeyboardButtonData("All locations", "//nusbus_home"),
+		// ),
+	)
 }
 
 //makeNUSHeap returns a heap for NUS Bus timings
@@ -204,6 +254,23 @@ func makeNUSHeap(loc tgbotapi.Location) BusStopHeap {
 	BSH := BusStopHeap{points, loc}
 	heap.Init(&BSH)
 	return BSH
+}
+
+func getLocationTimings(code string) (string, bool) {
+	// Get a list of bus stop codes from a location code
+	responseString := ""
+	locs, ok := locations[code]
+	if ok {
+		// Format response with timings for bus stop codes
+		lines := make([]string, 0)
+		lines = append(lines, "🤖: Here are the bus timings")
+		for _, loc := range locs {
+			lines = append(lines, getBusTimings(loc))
+		}
+		lines = append(lines, "Last updated: " + time.Now().Format(time.RFC822))
+		responseString = strings.Join(lines, "\n\n")
+	}
+	return responseString, ok
 }
 
 func getBusTimings(code string) string { // for location buttons
@@ -311,7 +378,6 @@ type BusStop struct {
 	BusStopName   string `json:"name"`
 }
 
-// BusStopHeap is a heap of bus stops that implements heap.Interface
 type BusStopHeap struct {
 	busStopList []BusStop
 	location    tgbotapi.Location
@@ -329,12 +395,10 @@ func (h BusStopHeap) Swap(i, j int) {
 	h.busStopList[i], h.busStopList[j] = h.busStopList[j], h.busStopList[i]
 }
 
-// Push implements heap.Interface
 func (h *BusStopHeap) Push(x interface{}) {
 	h.busStopList = append(h.busStopList, x.(BusStop))
 }
 
-// Pop implements heap.Interface
 func (h *BusStopHeap) Pop() interface{} {
 	oldh := h.busStopList
 	n := len(oldh)
