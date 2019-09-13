@@ -28,6 +28,7 @@ type Cinnabot struct {
 	bot     bot
 	log     *log.Logger
 	fmap    FuncMap
+	hmap    map[string]CallbackFunc
 	keys    config
 	db      model.DataGroup
 	cache   *cache.Cache
@@ -94,6 +95,7 @@ func InitCinnabot(configJSON []byte, lg *log.Logger) *Cinnabot {
 
 	cb := &Cinnabot{Name: cfg.Name, bot: bot, log: lg, keys: cfg}
 	cb.fmap = cb.getDefaultFuncMap()
+	cb.hmap = make(map[string]CallbackFunc)
 	cb.db = model.InitializeDB()
 	cb.cache = cache.New(1*time.Minute, 2*time.Minute)
 	//tag alternates with tag description

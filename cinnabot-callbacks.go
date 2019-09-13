@@ -3,11 +3,11 @@ package cinnabot
 import (
 	"fmt"
 	"log"
-	"os"
+	// "os"
 	"strings"
 	"time"
 
-	cache "github.com/patrickmn/go-cache"
+	// cache "github.com/patrickmn/go-cache"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
@@ -28,15 +28,15 @@ func (qry callback) GetArgString() string {
 type CallbackFunc func(*callback)
 
 // Patch the cinnabot with support for callbacks
-type CinnabotPatch struct {
-	hmap  map[string]CallbackFunc // Maps a callback command to a handler function
-	cache *cache.Cache
-	log   *log.Logger
-	*Cinnabot
-}
+// type Cinnabot struct {
+// 	hmap  map[string]CallbackFunc // Maps a callback command to a handler function
+// 	cache *cache.Cache
+// 	log   *log.Logger
+// 	*Cinnabot
+// }
 
 // Addhandler binds a handler function to a callback cmd string in Cinnabot's HandlerMap
-func (cb *CinnabotPatch) AddHandler(command string, resp CallbackFunc) error {
+func (cb *Cinnabot) AddHandler(command string, resp CallbackFunc) error {
 	if !strings.HasPrefix(command, "//") {
 		return fmt.Errorf("not a valid callback string - it should be of the format //cmd [args]")
 	}
@@ -45,7 +45,7 @@ func (cb *CinnabotPatch) AddHandler(command string, resp CallbackFunc) error {
 }
 
 // Handler routes Telegram callback queries to the appropriate handlers.
-func (cb *CinnabotPatch) Handle(qry tgbotapi.CallbackQuery) {
+func (cb *Cinnabot) Handle(qry tgbotapi.CallbackQuery) {
 	// Parse callback
 	parsed := cb.parseCallback(&qry)
 
@@ -64,7 +64,7 @@ func (cb *CinnabotPatch) Handle(qry tgbotapi.CallbackQuery) {
 }
 
 // Helper to parse callbacks from inline keyboards
-func (cb *CinnabotPatch) parseCallback(qry *tgbotapi.CallbackQuery) *callback {
+func (cb *Cinnabot) parseCallback(qry *tgbotapi.CallbackQuery) *callback {
 	// Should add some error checking
 	chatID := qry.Message.Chat.ID
 	MsgID := qry.Message.MessageID
@@ -74,17 +74,17 @@ func (cb *CinnabotPatch) parseCallback(qry *tgbotapi.CallbackQuery) *callback {
 }
 
 // InitCinnabot initializes an instance of Cinnabot.
-func InitCinnabotPatch(configJSON []byte, lg *log.Logger) *CinnabotPatch {
-	if lg == nil {
-		lg = log.New(os.Stdout, "[Cinnabot] ", 0)
-	}
-
-	cb := &CinnabotPatch{
-		hmap:     make(map[string]CallbackFunc),
-		log:      lg,
-		cache:    cache.New(1*time.Minute, 2*time.Minute),
-		Cinnabot: InitCinnabot(configJSON, lg),
-	}
-
-	return cb
-}
+// func InitCinnabotPatch(configJSON []byte, lg *log.Logger) *Cinnabot {
+// 	if lg == nil {
+// 		lg = log.New(os.Stdout, "[Cinnabot] ", 0)
+// 	}
+//
+// 	cb := &Cinnabot{
+// 		hmap:     make(map[string]CallbackFunc),
+// 		log:      lg,
+// 		cache:    cache.New(1*time.Minute, 2*time.Minute),
+// 		Cinnabot: InitCinnabot(configJSON, lg),
+// 	}
+//
+// 	return cb
+// }

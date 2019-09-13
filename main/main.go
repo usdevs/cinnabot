@@ -18,7 +18,7 @@ func main() {
 
 	logger := log.New(os.Stdout, "[cinnabot] ", 0)
 
-	cb := cinnabot.InitCinnabotPatch(configJSON, logger)
+	cb := cinnabot.InitCinnabot(configJSON, logger)
 	db := model.InitializeDB()
 
 	//Junk functions
@@ -50,8 +50,7 @@ func main() {
 	cb.AddFunction("/cancel", cb.Cancel)
 
 	// Callback handlers
-	// Future support for refresh timings
-	// cb.AddHandler("//nusbus_refresh", cb.NUSBusResfresh)
+	cb.AddHandler("//nusbus_refresh", cb.NUSBusResfresh)
 
 	updates := cb.Listen(60)
 	log.Println("Listening...")
