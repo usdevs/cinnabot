@@ -49,6 +49,9 @@ func main() {
 
 	cb.AddFunction("/cancel", cb.Cancel)
 
+	// Callback handlers
+	cb.AddHandler("//nusbus_refresh", cb.NUSBusResfresh)
+
 	updates := cb.Listen(60)
 	log.Println("Listening...")
 
@@ -58,6 +61,9 @@ func main() {
 			db.Add(&modelMsg)
 			db.Add(&modelUsr)
 			cb.Router(*update.Message)
+		}
+		if update.CallbackQuery != nil {
+			cb.Handle(*update.CallbackQuery)
 		}
 	}
 
