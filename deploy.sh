@@ -7,8 +7,8 @@ cd $CINNABOT
 
 # pull from github
 git pull origin master
-COMMITHEAD=$(git rev-parse --short HEAD)
-LASTUPDATED=$(git log -1 --format=%cr)
+export COMMITHEAD=$(git rev-parse --short HEAD)
+export LASTUPDATED=$(git log -1 --format=%cr)
 
 # build binary
 cd main
