@@ -1,6 +1,7 @@
 #!/bin/bash
 
-GOPATH=/root/go
+export PATH=$PATH:/usr/local/go/bin
+export GOPATH=/root/go
 CINNABOT=$GOPATH/src/github.com/usdevs/cinnabot
 cd $CINNABOT
 
