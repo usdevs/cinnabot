@@ -7,6 +7,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -91,7 +92,10 @@ func (cb *Cinnabot) Help(msg *message) {
 
 // About returns a link to Cinnabot's source code.
 func (cb *Cinnabot) About(msg *message) {
-	cb.SendTextMessage(int(msg.Chat.ID), "Touch me: https://github.com/usdevs/cinnabot")
+	text := fmt.Sprintf("Cinnabot %v\n", os.Getenv("COMMITHEAD"))
+	text += fmt.Sprintf("Last updated %v\n", os.Getenv("LASTUPDATED"))
+	text += "Touch me: https://github.com/usdevs/cinnabot"
+	cb.SendTextMessage(int(msg.Chat.ID), text)
 }
 
 //Link returns useful resources
