@@ -208,7 +208,15 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 	responseKeyboard := makeNUSBusKeyboard(code)
 
 	// Send response with refresh button
-	response := tgbotapi.NewMessage(msg.Chat.ID, responseString)
+	response := tgbotapi.MessageConfig{
+		BaseChat: tgbotapi.BaseChat{
+			ChatID:           msg.Chat.ID,
+			ReplyToMessageID: 0,
+		},
+		Text:                  responseString,
+		ParseMode:             "Markdown",
+		DisableWebPagePreview: false,
+	}
 	response.ReplyMarkup = responseKeyboard
 	cb.SendMessage(response)
 }
@@ -221,7 +229,16 @@ func (cb *Cinnabot) NUSBusResfresh(qry *callback) {
 		return
 	}
 	responseKeyboard := makeNUSBusKeyboard(code)
-	msg := tgbotapi.NewEditMessageText(qry.ChatID, qry.MsgID, responseString)
+	// msg := tgbotapi.NewEditMessageText(qry.ChatID, qry.MsgID, responseString)
+	msg := tgbotapi.EditMessageTextConfig{
+		BaseEdit: tgbotapi.BaseEdit{
+			ChatID:    qry.ChatID,
+			MessageID: qry.MsgID,
+		},
+		Text:      responseString,
+		ParseMode: "Markdown",
+	}
+
 	msg.ReplyMarkup = &responseKeyboard
 	cb.SendMessage(msg)
 }
