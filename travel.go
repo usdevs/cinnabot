@@ -221,7 +221,7 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 	cb.SendMessage(response)
 }
 
-func (cb *Cinnabot) NUSBusResfresh(qry *callback) {
+func (cb *Cinnabot) NUSBusRefresh(qry *callback) {
 	code := qry.GetArgString()
 	responseString, ok := getLocationTimings(code)
 	if !ok {

@@ -50,7 +50,7 @@ func main() {
 	cb.AddFunction("/cancel", cb.Cancel)
 
 	// Callback handlers
-	cb.AddHandler("//nusbus_refresh", cb.NUSBusResfresh)
+	cb.AddHandler("//nusbus_refresh", cb.NUSBusRefresh)
 
 	updates := cb.Listen(60)
 	log.Println("Listening...")
