@@ -353,7 +353,7 @@ func nusBusTimingResponse(BSH *BusStopHeap) string { // for location-based query
 						if at == "-" {
 							continue
 						} else if at == "Arr" {
-						min = k
+							min = k
 							continue
 						}
 
