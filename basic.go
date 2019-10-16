@@ -1,16 +1,16 @@
 package cinnabot
 
 import (
-	"fmt"
-	"net/http"
-	"strconv"
-	"strings"
-
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"math"
-	"regexp"
+	"net/http"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
 
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/usdevs/cinnabot/model"
@@ -62,17 +62,6 @@ func (cb *Cinnabot) Help(msg *message) {
 					"'/spaces dd/mm(/yy) dd/mm(/yy)' : to view all bookings in a specific range of dates"
 			cb.SendTextMessage(int(msg.Chat.ID), text)
 			return
-
-		} else if msg.Args[0] == "cbs" {
-			text :=
-				"/subscribe <tag>: subscribe to a tag\n" +
-					"/unsubscribe <tag>: unsubscribe from a tag\n" +
-					"/broadcast <tag>: broadcast to a tag [admin]\n" +
-					"Alternatively you can just type:\n" +
-					"/subscribe for a button list\n" +
-					"/unsubscribe for a button list\n"
-			cb.SendTextMessage(int(msg.Chat.ID), text)
-			return
 		} else if msg.Args[0] == "resources" {
 			text :=
 				"/resources <tag>: searches resources for a specific tag\n" +
@@ -90,7 +79,6 @@ func (cb *Cinnabot) Help(msg *message) {
 	text :=
 		"Here are a list of functions to get you started 🤸 \n" +
 			"/about: to find out more about me\n" +
-			"/cbs: cinnamon broadcast system\n" +
 			"/publicbus: public bus timings for bus stops around your location\n" +
 			"/nusbus: nus bus timings for bus stops around your location\n" +
 			"/weather: 2h weather forecast\n" +
@@ -105,53 +93,113 @@ func (cb *Cinnabot) Help(msg *message) {
 
 // About returns a link to Cinnabot's source code.
 func (cb *Cinnabot) About(msg *message) {
-	cb.SendTextMessage(int(msg.Chat.ID), "Touch me: https://github.com/pengnam/Cinnabot")
+	text := fmt.Sprintf("Cinnabot %v\n", os.Getenv("COMMITHEAD"))
+	text += fmt.Sprintf("Last updated %v\n", os.Getenv("LASTUPDATED"))
+	text += "Touch me: https://github.com/usdevs/cinnabot"
+	cb.SendTextMessage(int(msg.Chat.ID), text)
 }
 
 //Link returns useful resources
 func (cb *Cinnabot) Resources(msg *message) {
-	resources := make(map[string]string)
-	resources["usplife"] = "[fb page](https://www.facebook.com/groups/usplife/)"
-	resources["food"] = "@rcmealbot"
-	resources["spaces"] = "[spaces web](http://www.nususc.com/Spaces.aspx)"
-	resources["usc"] = "[usc web](http://www.nususc.com/MainPage.aspx)"
-	resources["study groups"] = "@USPhonebook\\_bot"
-	resources["FOP page"] = "[FOP2019](https://www.facebook.com/uscfop19/)"
-	resources["LIN"] = "[LINTIME](https://www.facebook.com/lin.yuan.353)"
 
-	var key string = strings.ToLower(strings.Join(msg.Args, " "))
-	log.Print(key)
-	_, ok := resources[key]
-	if ok {
-		cb.SendTextMessage(int(msg.Chat.ID), resources[key])
-	} else {
-		var values string = ""
-		for key, _ := range resources {
-			values += key + " : " + resources[key] + "\n"
-		}
-		msg := tgbotapi.NewMessage(msg.Chat.ID, values)
-		msg.DisableWebPagePreview = true
-		msg.ParseMode = "markdown"
-		cb.SendMessage(msg)
+	//If no args in resources and arg not relevant
+	if len(msg.Args) == 0 || !cb.CheckArgCmdPair("/resources", msg.Args) {
+		opt1 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Telegram"), tgbotapi.NewKeyboardButton("Links"))
+		opt2 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Interest Groups"), tgbotapi.NewKeyboardButton("Everything"))
+
+		options := tgbotapi.NewReplyKeyboard(opt1, opt2)
+
+		replyMsg := tgbotapi.NewMessage(msg.Chat.ID, "🤖: How can I help you?\n\n")
+		replyMsg.ReplyMarkup = options
+		cb.SendMessage(replyMsg)
+		return
 	}
+
+	robotSays := "🤖: Here you go!\n\n"
+
+	switch msg.Args[0] {
+	case "telegram", "links", "interest":
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getResources(msg.Args[0]))
+	case "everything":
+		cb.SendTextMessage(int(msg.Chat.ID), robotSays+getResources("telegram")+"\n\n"+getResources("links")+"\n\n"+getResources("interest"))
+	}
+
+	return
+	/*	var key string = strings.ToLower(strings.Join(msg.Args, " "))
+		log.Print(key)
+		_, ok := resources[key]
+		if ok {
+			cb.SendTextMessage(int(msg.Chat.ID), resources[key])
+		} else {
+			var values string = ""
+			for key, _ := range resources {
+				values += key + " : " + resources[key] + "\n"
+			}
+			msg := tgbotapi.NewMessage(msg.Chat.ID, values)
+			msg.DisableWebPagePreview = true
+			msg.ParseMode = "markdown"
+			cb.SendMessage(msg)
+		} */
+}
+
+type resources struct {
+	Telegram       map[string]string `json:"telegram"`
+	Links          map[string]string `json:"links"`
+	InterestGroups map[string]string `json:"interest_groups"`
+}
+
+func getResources(code string) string { // for resources buttons
+	var (
+		resources resources
+		jsonBytes []byte
+		err       error
+	)
+
+	jsonBytes, err = ioutil.ReadFile("../resources.json")
+	if err != nil {
+		fmt.Println(err)
+	}
+	if err := json.Unmarshal(jsonBytes, &resources); err != nil {
+		fmt.Println(err)
+	}
+
+	var (
+		resourceList []string
+		resourceType map[string]string
+	)
+	switch code {
+	case "telegram":
+		resourceType = resources.Telegram
+	case "links":
+		resourceType = resources.Links
+	case "interest":
+		resourceType = resources.InterestGroups
+	}
+
+	for k, v := range resourceType {
+		resourceList = append(resourceList, fmt.Sprintf("%v : %v", k, v))
+	}
+	sort.Strings(resourceList)
+
+	return "*" + code + "*\n" + strings.Join(resourceList, "\n")
 }
 
 //Structs for weather forecast function
 type WeatherForecast struct {
-	AM []AreaMetadata `json:"area_metadata"`
-	FD []ForecastData `json:"items"`
+	AM []areaMetadata `json:"area_metadata"`
+	FD []forecastData `json:"items"`
 }
 
-type AreaMetadata struct {
+type areaMetadata struct {
 	Name string            `json:"name"`
 	Loc  tgbotapi.Location `json:"label_location"`
 }
 
-type ForecastData struct {
-	FMD []ForecastMetadata `json:"forecasts"`
+type forecastData struct {
+	FMD []forecastMetadata `json:"forecasts"`
 }
 
-type ForecastMetadata struct {
+type forecastMetadata struct {
 	Name     string `json:"area"`
 	Forecast string `json:"forecast"`
 }
@@ -187,12 +235,12 @@ func (cb *Cinnabot) Weather(msg *message) {
 	req.Header.Set("api-key", "d1Y8YtThOpkE5QUfQZmvuA3ktrHa1uWP")
 
 	resp, _ := client.Do(req)
-	responseData, _ := ioutil.ReadAll(resp.Body) // Sean: reading data to check if there is an error??
+	responseData, _ := ioutil.ReadAll(resp.Body) 
 
 	wf := WeatherForecast{}
 	if err := json.Unmarshal(responseData, &wf); err != nil {
+		cb.SendTextMessage(int(msg.Chat.ID), "Failed to get weather")
 		log.Fatal(err)
-		return
 	}
 
 	lowestDistance := distanceBetween(wf.AM[0].Loc, *loc)
@@ -207,7 +255,7 @@ func (cb *Cinnabot) Weather(msg *message) {
 	log.Print("The closest location is " + nameMinLoc)
 
 	var forecast string
-	for i, _ := range wf.FD[0].FMD {
+	for i := range wf.FD[0].FMD {
 		if wf.FD[0].FMD[i].Name == nameMinLoc {
 			forecast = wf.FD[0].FMD[i].Forecast
 			break
@@ -216,14 +264,14 @@ func (cb *Cinnabot) Weather(msg *message) {
 
 	//Parsing forecast
 	words := strings.Fields(forecast)
-	forecast = strings.ToLower(strings.Join(words[:len(words)-1], " "))
+	if len(words) > 1 {
+		forecast = strings.ToLower(strings.Join(words[:len(words)-1], " "))
+	} else {
+		forecast = strings.ToLower(forecast)
+	}
 
 	responseString := "🤖: The 2h forecast is " + forecast + " for " + nameMinLoc
-	returnMsg := tgbotapi.NewMessage(msg.Chat.ID, responseString)
-	returnMsg.ParseMode = "Markdown"
-	returnMsg.ReplyMarkup = tgbotapi.NewRemoveKeyboard(true)
-	cb.SendMessage(returnMsg)
-
+	cb.SendTextMessage(int(msg.Chat.ID), responseString)
 }
 
 //Helper funcs for weather
@@ -296,84 +344,6 @@ func (cb *Cinnabot) NUSMap(msg *message) {
 	cb.SendTextMessage(int(msg.Chat.ID), textmsg)
 }
 
-//Broadcast broadcasts a message after checking for admin status [trial]
-//Admins are to first send a message with tags before sending actual message
-func (cb *Cinnabot) Broadcast(msg *message) {
-	val := checkAdmin(cb, msg)
-	if !val {
-		cb.SendTextMessage(int(msg.Chat.ID), "🤖: Im sorry! You do not seem to be one of my overlords")
-		return
-	}
-
-	if len(msg.Args) == 0 {
-		text := "🤖: Please do /broadcast <tag>\n*Tags:*\n"
-		for i := 0; i < len(cb.allTags); i += 2 {
-			text += cb.allTags[i] + "\n"
-		}
-		cb.SendTextMessage(int(msg.Chat.ID), text)
-		return
-	}
-	//Used to initialize tags in a mark-up. Ensure that people check their tags
-	if msg.ReplyToMessage == nil {
-		//Scan for tags
-		r := regexp.MustCompile(`\/\w*`)
-		locReply := r.FindStringIndex(msg.Text)
-		tags := strings.Fields(strings.ToLower(msg.Text[locReply[1]:]))
-
-		//Filter for valid tags
-		var checkedTags []string
-		for i := 0; i < len(tags); i++ {
-			if cb.db.CheckTagExists(int(msg.Chat.ID), tags[i]) {
-				checkedTags = append(checkedTags, tags[i])
-			}
-		}
-		if tags[0] == "all" {
-			checkedTags = append(checkedTags, "all")
-		}
-
-		if len(checkedTags) == 0 {
-			cb.SendTextMessage(int(msg.Chat.ID), "🤖: No valid tags found")
-			return
-		}
-
-		reminderMsg := tgbotapi.NewMessage(msg.Chat.ID, "REMINDER: Please include tag at start of message. \n Format: #<tagname1> #<tagname2> <msg>")
-		cb.SendMessage(reminderMsg)
-
-		//Send in mark-up
-		replyMsg := tgbotapi.NewMessage(msg.Chat.ID, "/broadcast "+strings.Join(checkedTags, " "))
-		replyMsg.BaseChat.ReplyToMessageID = msg.MessageID
-		replyMsg.ReplyMarkup = tgbotapi.ForceReply{ForceReply: true, Selective: true}
-		cb.SendMessage(replyMsg)
-		return
-
-	}
-
-	//Tags to send to
-	r := regexp.MustCompile(`\/\w*`)
-	locReply := r.FindStringIndex(msg.ReplyToMessage.Text)
-	tags := strings.Fields(msg.ReplyToMessage.Text[locReply[1]:])
-
-	userGroup := cb.db.UserGroup(tags)
-
-	//Forwards message to everyone in the group
-	for j := 0; j < len(userGroup); j++ {
-		forwardMess := tgbotapi.NewForward(int64(userGroup[j].UserID), msg.Chat.ID, msg.MessageID)
-		cb.SendMessage(forwardMess)
-	}
-
-	return
-}
-
-func checkAdmin(cb *Cinnabot, msg *message) bool {
-	for _, admin := range cb.keys.Admins {
-		if admin == msg.From.ID {
-			return true
-		} else if admin == int(msg.Chat.ID) {
-			return true
-		}
-	}
-	return false
-}
 
 // function to count number of users and messages
 func (cb *Cinnabot) GetStats(msg *message) {

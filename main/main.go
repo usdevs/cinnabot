@@ -39,11 +39,6 @@ func main() {
 	cb.AddFunction("/weather", cb.Weather)
 	cb.AddFunction("/map", cb.NUSMap)
 
-	cb.AddFunction("/cbs", cb.CBS)
-	cb.AddFunction("/broadcast", cb.Broadcast)
-	cb.AddFunction("/subscribe", cb.Subscribe)
-	cb.AddFunction("/unsubscribe", cb.Unsubscribe)
-
 	cb.AddFunction("/spaces", cb.Spaces)
 
 	cb.AddFunction("/feedback", cb.Feedback)
@@ -56,7 +51,11 @@ func main() {
 
 	cb.AddFunction("/cancel", cb.Cancel)
 
+	// Callback handlers
+	cb.AddHandler("//nusbus_refresh", cb.NUSBusResfresh)
+
 	updates := cb.Listen(60)
+	log.Println("Listening...")
 
 	for update := range updates {
 		if update.Message != nil {
@@ -64,6 +63,9 @@ func main() {
 			db.Add(&modelMsg)
 			db.Add(&modelUsr)
 			cb.Router(*update.Message)
+		}
+		if update.CallbackQuery != nil {
+			cb.Handle(*update.CallbackQuery)
 		}
 	}
 

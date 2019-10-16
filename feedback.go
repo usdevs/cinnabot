@@ -6,7 +6,7 @@ import (
 
 	"github.com/patrickmn/go-cache"
 	"github.com/usdevs/cinnabot/model"
-	"gopkg.in/telegram-bot-api.v4"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 //The different feedback functions are broken to four different functions so that responses can be easily personalised.
@@ -53,6 +53,7 @@ func (cb *Cinnabot) Feedback(msg *message) {
 	return
 }
 
+// CinnabotFeedback forwards feedback to USDevs
 func (cb *Cinnabot) CinnabotFeedback(msg *message) {
 	cb.cache.Set(strconv.Itoa(msg.From.ID), "", cache.DefaultExpiration)
 
@@ -66,6 +67,7 @@ func (cb *Cinnabot) CinnabotFeedback(msg *message) {
 	return
 }
 
+// USCFeedback forwards feedback to USC
 func (cb *Cinnabot) USCFeedback(msg *message) {
 	cb.cache.Set(strconv.Itoa(msg.From.ID), "", cache.DefaultExpiration)
 	text := "🤖: Feedback received! I will now transmit feedback to USC\n\n " +
@@ -76,6 +78,7 @@ func (cb *Cinnabot) USCFeedback(msg *message) {
 	return
 }
 
+// DiningFeedback forwards feedback to DH Comm
 func (cb *Cinnabot) DiningFeedback(msg *message) {
 	cb.cache.Set(strconv.Itoa(msg.From.ID), "", cache.DefaultExpiration)
 
@@ -87,6 +90,7 @@ func (cb *Cinnabot) DiningFeedback(msg *message) {
 	return
 }
 
+// ResidentialFeedback forwards feedback to Residential Comm
 func (cb *Cinnabot) ResidentialFeedback(msg *message) {
 	cb.cache.Set(strconv.Itoa(msg.From.ID), "", cache.DefaultExpiration)
 
@@ -98,6 +102,7 @@ func (cb *Cinnabot) ResidentialFeedback(msg *message) {
 	return
 }
 
+// Cancel cancels the command
 func (cb *Cinnabot) Cancel(msg *message) {
 	cb.cache.Set(strconv.Itoa(msg.From.ID), "", cache.DefaultExpiration)
 
@@ -106,7 +111,7 @@ func (cb *Cinnabot) Cancel(msg *message) {
 	return
 }
 
-// function to send message when someone enters dhsurvey tag
+// DHSurvey sends message when someone enters dhsurvey tag
 func (cb *Cinnabot) DHSurvey(msg *message) {
 
 	replyMsg := tgbotapi.NewMessage(int64(msg.Message.From.ID), `
@@ -130,7 +135,7 @@ func (cb *Cinnabot) DHSurvey(msg *message) {
 	return
 }
 
-// function to add DH survey entry to database
+// DHSurveyFeedback adds DH survey entry to database
 func (cb *Cinnabot) DHSurveyFeedback(msg *message) {
 
 	// cache must return to normal after this fuction
