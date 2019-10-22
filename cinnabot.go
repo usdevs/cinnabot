@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/patrickmn/go-cache"
+	cache "github.com/patrickmn/go-cache"
 	"github.com/usdevs/cinnabot/model"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
@@ -28,6 +28,7 @@ type Cinnabot struct {
 	bot     bot
 	log     *log.Logger
 	fmap    FuncMap
+	hmap    map[string]CallbackFunc
 	keys    config
 	db      model.DataGroup
 	cache   *cache.Cache
@@ -94,6 +95,7 @@ func InitCinnabot(configJSON []byte, lg *log.Logger) *Cinnabot {
 
 	cb := &Cinnabot{Name: cfg.Name, bot: bot, log: lg, keys: cfg}
 	cb.fmap = cb.getDefaultFuncMap()
+	cb.hmap = make(map[string]CallbackFunc)
 	cb.db = model.InitializeDB()
 	cb.cache = cache.New(1*time.Minute, 2*time.Minute)
 	//tag alternates with tag description
@@ -170,7 +172,7 @@ func (cb *Cinnabot) Router(msg tgbotapi.Message) {
 	}
 }
 
-// Checks if arg can be used with command
+// CheckArgCmdPair checks if arg can be used with command
 // Used to supplement cache as cache only records functions as states
 func (cb *Cinnabot) CheckArgCmdPair(cmd string, args []string) bool {
 	key := "" //Messages with no text in message
@@ -188,15 +190,13 @@ func (cb *Cinnabot) CheckArgCmdPair(cmd string, args []string) bool {
 	checkMap["/diningfeedback"] = []string{"anything"}
 	checkMap["/residentialfeedback"] = []string{"anything"}
 	checkMap["/ohsfeedback"] = []string{"anything"}
-	checkMap["/cbs"] = []string{"subscribe", "unsubscribe"}
+
+	checkMap["/resources"] = []string{"telegram", "links", "interest", "everything", ""}
 
 	checkMap["/map"] = []string{"utown", "science", "arts", "law", "yih/engin", "cenlib", "biz", "yih", "kr-mrt", "mpsh", "comp", "", "nus", "sde"}
 	checkMap["/publicbus"] = []string{"cinnamon", ""}
 	checkMap["/nusbus"] = []string{"utown", "science", "arts", "law", "yih/engin", "cenlib", "biz", "yih", "kr-mrt", "mpsh", "comp", ""}
 	checkMap["/weather"] = []string{"cinnamon", ""}
-
-	checkMap["/subscribe"] = cb.allTags
-	checkMap["/unsubscribe"] = cb.allTags
 
 	arr := checkMap[cmd]
 	for i := 0; i < len(arr); i++ {

@@ -11,7 +11,10 @@ import (
 	"time"
 )
 
-const GREATER_THAN = "GREATER_THAN" //for firestore queries (use with makeQuery)
+// for firestore queries (use with makeQuery)
+
+// GreaterThan is the > operator
+const GreaterThan = "GREATER_THAN"
 
 // PARSING AND QUERYING:
 
@@ -34,8 +37,8 @@ func makeQuery(fieldName string, op string, jsonValue interface{}) string {
 	}
 	`
 
-	valueAsJson, _ := json.Marshal(jsonValue)
-	return fmt.Sprintf(formatString, fieldName, op, string(valueAsJson))
+	valueAsJSON, _ := json.Marshal(jsonValue)
+	return fmt.Sprintf(formatString, fieldName, op, string(valueAsJSON))
 }
 
 // A query will return a list of objects like the one below (some fields omitted for berevity).
@@ -178,7 +181,7 @@ func getSpaces(query string) Spaces {
 
 // getSpacesAfter returns the Events (as Spaces) whose endDate is after the specified date
 func getSpacesAfter(date time.Time) Spaces {
-	query := makeQuery("endDate", GREATER_THAN, jsonTime(date.UTC())) //convert to UTC as firestore stores UTC datetimes
+	query := makeQuery("endDate", GreaterThan, jsonTime(date.UTC())) //convert to UTC as firestore stores UTC datetimes
 	return getSpaces(query)
 }
 
