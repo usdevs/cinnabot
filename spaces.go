@@ -284,7 +284,7 @@ func eventBetweenDays(firstDate, lastDate time.Time) eventPredicate {
 // startOfDay returns a new time.Time with the time set to 00:00 (SG time)
 func startOfDay(date time.Time) time.Time {
 	localDate := date.Local()
-	return time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0,localDate.Location())
+	return time.Date(localDate.Year(), localDate.Month(), localDate.Day(), 0, 0, 0, 0, localDate.Location())
 }
 
 // endOfDay returns the next day 00:00
@@ -302,7 +302,7 @@ func FormatDate(t time.Time) string {
 // FormatTime formats a time.Time into a time in a standardised format
 func FormatTime(t time.Time) string {
 	localT := t.Local()
-	if localT.Minute()==0 {
+	if localT.Minute() == 0 {
 		return localT.Format("03PM")
 	}
 	return localT.Format("03:04PM")
@@ -378,9 +378,9 @@ func bookingsTodayMessage() string {
 // bookingsComingWeekMessage returns events which will happen/are happening in the next 7 days. Excludes events which have already finished.
 func bookingsComingWeekMessage() string {
 	now := time.Now()
-	weekLater := now.AddDate(0,0,7)
+	weekLater := now.AddDate(0, 0, 7)
 	spaces := getSpacesAfter(time.Now())
-	message := fmt.Sprintf("Displaying bookings 7 days from now (%s to %s):\n\n",FormatDate(now), FormatDate(weekLater))
+	message := fmt.Sprintf("Displaying bookings 7 days from now (%s to %s):\n\n", FormatDate(now), FormatDate(weekLater))
 	message += spaces.filter(eventBetweenDays(now, weekLater)).toString()
 	return message
 }
