@@ -235,7 +235,7 @@ func (cb *Cinnabot) Weather(msg *message) {
 	req.Header.Set("api-key", "d1Y8YtThOpkE5QUfQZmvuA3ktrHa1uWP")
 
 	resp, _ := client.Do(req)
-	responseData, _ := ioutil.ReadAll(resp.Body) 
+	responseData, _ := ioutil.ReadAll(resp.Body)
 
 	wf := WeatherForecast{}
 	if err := json.Unmarshal(responseData, &wf); err != nil {
@@ -343,7 +343,6 @@ func (cb *Cinnabot) NUSMap(msg *message) {
 	}
 	cb.SendTextMessage(int(msg.Chat.ID), textmsg)
 }
-
 
 // function to count number of users and messages
 func (cb *Cinnabot) GetStats(msg *message) {
