@@ -84,7 +84,8 @@ func (cb *Cinnabot) Help(msg *message) {
 			"/weather: 2h weather forecast\n" +
 			"/resources: list of important resources!\n" +
 			"/spaces: list of space bookings\n" +
-			"/feedback: to give feedback\n\n" +
+			"/feedback: to give feedback\n" +
+			"/map: to get a map of NUS if you're lost!\n\n" +
 			"_*My creator actually snuck in a few more functions🕺 *_\n" +
 			"Try using /help <func name> to see what I can _really_ do"
 	cb.SendTextMessage(int(msg.Chat.ID), text)
@@ -278,6 +279,69 @@ func distanceBetween(Loc1 tgbotapi.Location, Loc2 tgbotapi.Location) float64 {
 	x := math.Pow((float64(Loc1.Latitude - Loc2.Latitude)), 2)
 	y := math.Pow((float64(Loc1.Longitude - Loc2.Longitude)), 2)
 	return x + y
+}
+
+func (cb *Cinnabot) NUSMap(msg *message) {
+	//Add inlinequeries / buttons
+	if len(msg.Args) == 0 || !cb.CheckArgCmdPair("/map", msg.Args) {
+		opt1 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("NUS Map"))
+		opt2 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("UTown"), tgbotapi.NewKeyboardButton("Science"))
+		opt3 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Arts"), tgbotapi.NewKeyboardButton("Comp"))
+		opt4 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Law"), tgbotapi.NewKeyboardButton("Biz"))
+		opt5 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("SDE"), tgbotapi.NewKeyboardButton("Yih/Engin"))
+
+		options := tgbotapi.NewReplyKeyboard(opt1, opt2, opt3, opt4, opt5)
+		// Message sent upon user using /map command
+		replyMsg := tgbotapi.NewMessage(int64(msg.Chat.ID), "🤖: Hey "+msg.From.FirstName+"! Where are you?\n\n")
+		replyMsg.ReplyMarkup = options
+		cb.SendMessage(replyMsg)
+		return
+	}
+
+	textmsg := "🤖: " + "Hey " + msg.From.FirstName + ", heard of NUSMODs ?\n\n " +
+		"It is a student intiative made to improve the lives of students!" + "\n" +
+		"They also have a function to help you find your way around!\n Click on the link below!\n\n"
+
+	// String filepath to hold file path of Map files
+	var filepath string
+
+	// Depending on button pressed, change textmsg and filepath
+	if (msg.Args[0]) == "nus" {
+		filepath = "utown.nus.edu.sg/assets/Uploads/map-krc.jpg"
+		textmsg += "https://nusmods.com/venues"
+	} else if msg.Args[0] == "utown" {
+		textmsg += "https://nusmods.com/venues/UT-AUD2"
+		filepath = "https://raw.githubusercontent.com/usdevs/cinnabot/map_function/UTown%20Map.png"
+	} else if msg.Args[0] == "science" {
+		textmsg += "https://nusmods.com/venues/S8-0314"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Science%20Map.png?raw=true"
+	} else if msg.Args[0] == "arts" {
+		textmsg += "https://nusmods.com/venues/AS4-0602"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/FASS%20Map.png?raw=true"
+	} else if msg.Args[0] == "comp" {
+		textmsg += "https://nusmods.com/venues/COM1-0120"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Computing%20Map.png?raw=true"
+	} else if msg.Args[0] == "law" {
+		textmsg += "https://nusmods.com/venues" + "\n\n PS: Law venues are available under 'L'!"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Law%20Map.png?raw=true"
+	} else if msg.Args[0] == "biz" {
+		textmsg += "https://nusmods.com/venues/BIZ2-0115"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Biz%20Map.png?raw=true"
+	} else if msg.Args[0] == "sde" {
+		textmsg += "https://nusmods.com/venues/SDE-ER4"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/SDE.png?raw=true"
+	} else if msg.Args[0] == "yih/engin" {
+		textmsg += "https://nusmods.com/venues/E3-05-21"
+		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Engineering%20Map.png?raw=true"
+	}
+
+	// Use NewPhotoShare to share Map Photo
+	newmsg := tgbotapi.NewPhotoShare(int64(msg.Chat.ID), filepath)
+	_, errr := cb.bot.Send(newmsg)
+	if errr != nil {
+		fmt.Println(errr)
+	}
+	cb.SendTextMessage(int(msg.Chat.ID), textmsg)
 }
 
 // function to count number of users and messages
