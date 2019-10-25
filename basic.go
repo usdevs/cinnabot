@@ -306,31 +306,33 @@ func (cb *Cinnabot) NUSMap(msg *message) {
 	var filepath string
 
 	// Depending on button pressed, change textmsg and filepath
-	if (msg.Args[0]) == "nus" {
-		filepath = "utown.nus.edu.sg/assets/Uploads/map-krc.jpg"
+
+	switch msg.Args[0] {
+	case "nus":
 		textmsg += "https://nusmods.com/venues"
-	} else if msg.Args[0] == "utown" {
+		filepath = "utown.nus.edu.sg/assets/Uploads/map-krc.jpg"
+	case "utown":
 		textmsg += "https://nusmods.com/venues/UT-AUD2"
 		filepath = "https://raw.githubusercontent.com/usdevs/cinnabot/map_function/UTown%20Map.png"
-	} else if msg.Args[0] == "science" {
+	case "science":
 		textmsg += "https://nusmods.com/venues/S8-0314"
 		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Science%20Map.png?raw=true"
-	} else if msg.Args[0] == "arts" {
+	case "arts":
 		textmsg += "https://nusmods.com/venues/AS4-0602"
 		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/FASS%20Map.png?raw=true"
-	} else if msg.Args[0] == "comp" {
+	case "comp":
 		textmsg += "https://nusmods.com/venues/COM1-0120"
 		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Computing%20Map.png?raw=true"
-	} else if msg.Args[0] == "law" {
+	case "law":
 		textmsg += "https://nusmods.com/venues" + "\n\n PS: Law venues are available under 'L'!"
 		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Law%20Map.png?raw=true"
-	} else if msg.Args[0] == "biz" {
+	case "biz":
 		textmsg += "https://nusmods.com/venues/BIZ2-0115"
 		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Biz%20Map.png?raw=true"
-	} else if msg.Args[0] == "sde" {
+	case "sde":
 		textmsg += "https://nusmods.com/venues/SDE-ER4"
 		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/SDE.png?raw=true"
-	} else if msg.Args[0] == "yih/engin" {
+	case "yih/engin":
 		textmsg += "https://nusmods.com/venues/E3-05-21"
 		filepath = "https://github.com/usdevs/cinnabot/blob/map_function/Engineering%20Map.png?raw=true"
 	}
