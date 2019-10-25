@@ -1,11 +1,12 @@
 package cinnabot
 
 import (
-	"github.com/stretchr/testify/mock"
-	tgbotapi "gopkg.in/telegram-bot-api.v4"
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/mock"
+	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
 var (
