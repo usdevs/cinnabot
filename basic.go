@@ -53,7 +53,6 @@ func (cb *Cinnabot) Start(msg *message) {
 // Help gives a list of handles that the user may call along with a description of them
 func (cb *Cinnabot) Help(msg *message) {
 	if len(msg.Args) > 0 {
-
 		if msg.Args[0] == "spaces" {
 			text :=
 				"To use the '/spaces' command, type one of the following:\n" +
@@ -85,7 +84,9 @@ func (cb *Cinnabot) Help(msg *message) {
 			"/resources: list of important resources!\n" +
 			"/spaces: list of space bookings\n" +
 			"/feedback: to give feedback\n" +
-			"/map: to get a map of NUS if you're lost!\n\n" +
+			"/map: to get a map of NUS if you're lost!\n" +
+			"/laundry: to check washer and dryer availability in cinnamon\n" +
+			"\n" +
 			"_*My creator actually snuck in a few more functions🕺 *_\n" +
 			"Try using /help <func name> to see what I can _really_ do"
 	cb.SendTextMessage(int(msg.Chat.ID), text)

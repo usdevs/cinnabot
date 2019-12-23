@@ -38,8 +38,8 @@ func main() {
 	cb.AddFunction("/nusbus", cb.NUSBus)
 	cb.AddFunction("/weather", cb.Weather)
 	cb.AddFunction("/map", cb.NUSMap)
-
 	cb.AddFunction("/spaces", cb.Spaces)
+	cb.AddFunction("/laundry", cb.Laundry)
 
 	cb.AddFunction("/feedback", cb.Feedback)
 	cb.AddFunction("/dhsurvey", cb.DHSurvey)
@@ -53,6 +53,7 @@ func main() {
 
 	// Callback handlers
 	cb.AddHandler("//nusbus_refresh", cb.NUSBusResfresh)
+	cb.AddHandler("//laundry_refresh", cb.LaundryRefresh)
 
 	updates := cb.Listen(60)
 	log.Println("Listening...")
