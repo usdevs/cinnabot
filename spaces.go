@@ -8,25 +8,25 @@ import (
 	"time"
 
 	fs "github.com/usdevs/cinnabot/firestore"
+	"github.com/usdevs/cinnabot/utils"
 )
 
 // Displaying:
 
-// FormatDate formats a time.Time into date in a standardised format
+// FormatDate formats a time.Time into date in a standardised format. Does not change timezone.
 func FormatDate(t time.Time) string {
-	return t.Local().Format("Mon 02 Jan 06")
+	return t.Format("Mon 02 Jan 06")
 }
 
-// FormatTime formats a time.Time into a time in a standardised format
-func FormatTime(t time.Time) string {
-	localT := t.Local()
+// FormatTime formats a time.Time into a time in a standardised format. Does not change timezone.
+func FormatTime(localT time.Time) string {
 	if localT.Minute() == 0 {
 		return localT.Format("03PM")
 	}
 	return localT.Format("03:04PM")
 }
 
-// FormatTimeDate formats a time.Time into a full time and date, in a standardised format
+// FormatTimeDate formats a time.Time into a full time and date, in a standardised format. Does not change timezone.
 func FormatTimeDate(t time.Time) string {
 	return fmt.Sprintf("%s, %s", FormatTime(t), FormatDate(t))
 }
@@ -43,8 +43,8 @@ type Event struct {
 func (event *Event) timeInfo() string {
 	start := event.Start
 	end := event.End
-	y1, m1, d1 := start.Local().Date()
-	y2, m2, d2 := end.Local().Date()
+	y1, m1, d1 := start.Date()
+	y2, m2, d2 := end.Date()
 
 	if y1 == y2 && m1 == m2 && d1 == d2 {
 		return fmt.Sprintf("%s to %s, %s", FormatTime(start), FormatTime(end), FormatDate(start))
@@ -267,7 +267,7 @@ func (spaces Spaces) filter(predicate eventPredicate) Spaces {
 // bookingsNowMessage returns currently ongoing events
 func bookingsNowMessage() string {
 	spaces := getSpacesAfter(time.Now())
-	message := fmt.Sprintf("Displaying bookings ongoing right now (%s):\n\n", FormatTimeDate(time.Now()))
+	message := fmt.Sprintf("Displaying bookings ongoing right now (%s):\n\n", FormatTimeDate(time.Now().In(utils.SgLocation())))
 	message += spaces.filter(eventDuring(time.Now())).toString()
 	return message
 }
@@ -282,7 +282,7 @@ func bookingsTodayMessage() string {
 
 // bookingsComingWeekMessage returns events which will happen/are happening in the next 7 days. Excludes events which have already finished.
 func bookingsComingWeekMessage() string {
-	now := time.Now()
+	now := time.Now().In(utils.SgLocation())
 	weekLater := now.AddDate(0, 0, 7)
 	spaces := getSpacesAfter(time.Now())
 	message := fmt.Sprintf("Displaying bookings 7 days from now (%s to %s):\n\n", FormatDate(now), FormatDate(weekLater))
@@ -290,7 +290,7 @@ func bookingsComingWeekMessage() string {
 	return message
 }
 
-// bookingsBetweenMessage returns events which will occur between the specified dates. May include events which have already finished as of now.
+// bookingsBetweenMessage returns events which will occur between the specified dates. May include events which have already finished as of now. Assumes that dates are in Sg time.
 func bookingsBetweenMessage(firstDate, lastDate time.Time) string {
 	spaces := getSpacesAfter(startOfDay(firstDate))
 	message := fmt.Sprintf("Displaying bookings from %s to %s:\n\n", FormatDate(firstDate), FormatDate(lastDate))
@@ -298,7 +298,7 @@ func bookingsBetweenMessage(firstDate, lastDate time.Time) string {
 	return message
 }
 
-// bookingsOnDateMessage returns events which will occur on the specified date. May include events which have already finished as of now.
+// bookingsOnDateMessage returns events which will occur on the specified date. May include events which have already finished as of now. Assumes that date is in Sg time.
 func bookingsOnDateMessage(date time.Time) string {
 	spaces := getSpacesAfter(startOfDay(date))
 	message := fmt.Sprintf("Displaying all bookings on %s:\n\n", FormatDate(date))
@@ -308,44 +308,46 @@ func bookingsOnDateMessage(date time.Time) string {
 
 // ParseDDMMYYDate parses user-inputted dd/mm/yy date into time.Time
 func ParseDDMMYYDate(date string) (time.Time, error) {
+	loc := utils.SgLocation()
+
 	//Attempt to parse as dd/mm/yy
 	format := "02/01/06"
-	t, err := time.Parse(format, date)
+	t, err := time.ParseInLocation(format, date, loc)
 
 	if err != nil {
 		// Attempt to parse as dd/m/yy
 		format = "02/1/06"
-		t, err = time.Parse(format, date)
+		t, err = time.ParseInLocation(format, date, loc)
 	}
 	if err != nil {
 		// Attempt to parse as d/mm/yy
 		format = "2/01/06"
-		t, err = time.Parse(format, date)
+		t, err = time.ParseInLocation(format, date, loc)
 	}
 	if err != nil {
 		// Attempt to parse as d/m/yy
 		format = "2/1/06"
-		t, err = time.Parse(format, date)
+		t, err = time.ParseInLocation(format, date, loc)
 	}
 	if err != nil {
 		// Attempt to parse as some form of dd/mm
 		// Attempt to parse as dd/mm
 		format = "02/01"
-		t, err = time.Parse(format, date)
+		t, err = time.ParseInLocation(format, date, loc)
 		if err != nil {
 			// Attempt to parse as dd/m
 			format = "02/1"
-			t, err = time.Parse(format, date)
+			t, err = time.ParseInLocation(format, date, loc)
 		}
 		if err != nil {
 			// Attempt to parse as d/mm
 			format = "2/01"
-			t, err = time.Parse(format, date)
+			t, err = time.ParseInLocation(format, date, loc)
 		}
 		if err != nil {
 			// Attempt to parse as d/m
 			format = "2/1"
-			t, err = time.Parse(format, date)
+			t, err = time.ParseInLocation(format, date, loc)
 		}
 
 		// Check if one of the dd/mm checks have worked
