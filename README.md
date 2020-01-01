@@ -9,7 +9,8 @@ Telegram Bot for Cinnamon College. [Telegram](https://t.me/cinnabot)
 - Show Singapore Public Bus Timings :oncoming_bus: `/publicbus`
 - Check facilities booking/events in Cinnamon College :school: `/spaces`
 - 2h Weather Forecast based on your location. :sunny: :umbrella: `/weather`
-
+- Lost? View maps of various parts of NUS :school: `/map`
+- Check laundry machine availability in Cinnamon College :shirt: `/laundry`
 
 Got a feature to suggest? :bulb:
 Bug to report? :bug:
