@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
@@ -44,7 +43,7 @@ var locations = map[string][]string{
 	"law":       {"BUKITTIMAH-BTC2"},
 }
 
-//Structs for BusTiming
+// Structs for BusTiming
 type BusTimes struct {
 	Services []Service `json:"Services"`
 }
@@ -194,8 +193,8 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 
 	// Check for aliases
 	code := msg.Args[0]
-	alias, has_alias := aliases[code]
-	if has_alias {
+	alias, hasAlias := aliases[code]
+	if hasAlias {
 		code = alias
 	}
 
@@ -208,12 +207,21 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 	responseKeyboard := makeNUSBusKeyboard(code)
 
 	// Send response with refresh button
-	response := tgbotapi.NewMessage(msg.Chat.ID, responseString)
+	response := tgbotapi.MessageConfig{
+		BaseChat: tgbotapi.BaseChat{
+			ChatID:           msg.Chat.ID,
+			ReplyToMessageID: 0,
+		},
+		Text:                  responseString,
+		ParseMode:             "Markdown",
+		DisableWebPagePreview: false,
+	}
 	response.ReplyMarkup = responseKeyboard
 	cb.SendMessage(response)
 }
 
-func (cb *Cinnabot) NUSBusResfresh(qry *callback) {
+//NUSBusRefresh is an inline button handler that updates bus timings in the message text
+func (cb *Cinnabot) NUSBusRefresh(qry *callback) {
 	code := qry.GetArgString()
 	responseString, ok := getLocationTimings(code)
 	if !ok {
@@ -221,11 +229,21 @@ func (cb *Cinnabot) NUSBusResfresh(qry *callback) {
 		return
 	}
 	responseKeyboard := makeNUSBusKeyboard(code)
-	msg := tgbotapi.NewEditMessageText(qry.ChatID, qry.MsgID, responseString)
+	// msg := tgbotapi.NewEditMessageText(qry.ChatID, qry.MsgID, responseString)
+	msg := tgbotapi.EditMessageTextConfig{
+		BaseEdit: tgbotapi.BaseEdit{
+			ChatID:    qry.ChatID,
+			MessageID: qry.MsgID,
+		},
+		Text:      responseString,
+		ParseMode: "Markdown",
+	}
+
 	msg.ReplyMarkup = &responseKeyboard
 	cb.SendMessage(msg)
 }
 
+//NUSBusHome updates the inline keyboard to a bus stop selector keyboard
 func (cb *Cinnabot) NUSBusHome(qry *callback) {
 	return // To be implemented if bus times is migrated to inline keyboard
 }

@@ -3,11 +3,9 @@ package cinnabot
 import (
 	"fmt"
 	"log"
-	// "os"
 	"strings"
 	"time"
 
-	// cache "github.com/patrickmn/go-cache"
 	tgbotapi "gopkg.in/telegram-bot-api.v4"
 )
 
@@ -25,17 +23,10 @@ func (qry callback) GetArgString() string {
 	return strings.Join(qry.Args, " ")
 }
 
+// CallbackFunc is a handler for a callback function
 type CallbackFunc func(*callback)
 
-// Patch the cinnabot with support for callbacks
-// type Cinnabot struct {
-// 	hmap  map[string]CallbackFunc // Maps a callback command to a handler function
-// 	cache *cache.Cache
-// 	log   *log.Logger
-// 	*Cinnabot
-// }
-
-// Addhandler binds a handler function to a callback cmd string in Cinnabot's HandlerMap
+// AddHandler binds a handler function to a callback cmd string in Cinnabot's HandlerMap
 func (cb *Cinnabot) AddHandler(command string, resp CallbackFunc) error {
 	if !strings.HasPrefix(command, "//") {
 		return fmt.Errorf("not a valid callback string - it should be of the format //cmd [args]")
@@ -44,7 +35,7 @@ func (cb *Cinnabot) AddHandler(command string, resp CallbackFunc) error {
 	return nil
 }
 
-// Handler routes Telegram callback queries to the appropriate handlers.
+// Handle routes Telegram callback queries to the appropriate handlers.
 func (cb *Cinnabot) Handle(qry tgbotapi.CallbackQuery) {
 	// Parse callback
 	parsed := cb.parseCallback(&qry)
