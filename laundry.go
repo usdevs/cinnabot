@@ -19,7 +19,7 @@ const projectId = "usc-laundry-test"
 
 // Firestore document structs
 type machineData struct {
-	PinNo              fs.Int    `json:"pinNo"`
+	PinId              fs.String `json:"pinId"`
 	Name               fs.String `json:"name"`
 	Ezlink             fs.Bool   `json:"ezlink"`
 	Washer             fs.Bool   `json:"washer"`
