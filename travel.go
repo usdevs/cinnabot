@@ -205,18 +205,7 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		return
 	}
 	responseKeyboard := makeNUSBusKeyboard(code)
-
-	// Send response with refresh button
-	response := tgbotapi.MessageConfig{
-		BaseChat: tgbotapi.BaseChat{
-			ChatID:           msg.Chat.ID,
-			ReplyToMessageID: 0,
-		},
-		Text:                  responseString,
-		ParseMode:             "Markdown",
-		DisableWebPagePreview: false,
-	}
-	response.ReplyMarkup = responseKeyboard
+	response := NewMessageWithButton(responseString, responseKeyboard, msg.Chat.ID)
 	cb.SendMessage(response)
 }
 
@@ -229,17 +218,7 @@ func (cb *Cinnabot) NUSBusRefresh(qry *callback) {
 		return
 	}
 	responseKeyboard := makeNUSBusKeyboard(code)
-	// msg := tgbotapi.NewEditMessageText(qry.ChatID, qry.MsgID, responseString)
-	msg := tgbotapi.EditMessageTextConfig{
-		BaseEdit: tgbotapi.BaseEdit{
-			ChatID:    qry.ChatID,
-			MessageID: qry.MsgID,
-		},
-		Text:      responseString,
-		ParseMode: "Markdown",
-	}
-
-	msg.ReplyMarkup = &responseKeyboard
+	msg := EditedMessageWithButton(responseString, responseKeyboard, qry.ChatID, qry.MsgID)
 	cb.SendMessage(msg)
 }
 
@@ -253,9 +232,6 @@ func makeNUSBusKeyboard(code string) tgbotapi.InlineKeyboardMarkup {
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Refresh", "//nusbus_refresh "+code),
 		),
-		// tgbotapi.NewInlineKeyboardRow(
-		// 	tgbotapi.NewInlineKeyboardButtonData("All locations", "//nusbus_home"),
-		// ),
 	)
 }
 
