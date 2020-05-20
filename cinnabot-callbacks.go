@@ -10,7 +10,7 @@ import (
 )
 
 // Wrapper struct for a callback query
-type callback struct {
+type Callback struct {
 	ChatID int64
 	MsgID  int
 	Cmd    string
@@ -19,12 +19,12 @@ type callback struct {
 }
 
 // GetArgStrings prints out the arguments for the callback in one string.
-func (qry callback) GetArgString() string {
+func (qry Callback) GetArgString() string {
 	return strings.Join(qry.Args, " ")
 }
 
 // CallbackFunc is a handler for a callback function
-type CallbackFunc func(*callback)
+type CallbackFunc func(*Callback)
 
 // AddHandler binds a handler function to a callback cmd string in Cinnabot's HandlerMap
 func (cb *Cinnabot) AddHandler(command string, resp CallbackFunc) error {
@@ -55,13 +55,13 @@ func (cb *Cinnabot) Handle(qry tgbotapi.CallbackQuery) {
 }
 
 // Helper to parse callbacks from inline keyboards
-func (cb *Cinnabot) parseCallback(qry *tgbotapi.CallbackQuery) *callback {
+func (cb *Cinnabot) parseCallback(qry *tgbotapi.CallbackQuery) *Callback {
 	// Should add some error checking
 	chatID := qry.Message.Chat.ID
 	MsgID := qry.Message.MessageID
 	qryTokens := strings.Fields(qry.Data)
 	cmd, args := strings.ToLower(qryTokens[0]), qryTokens[1:]
-	return &callback{ChatID: chatID, MsgID: MsgID, Cmd: cmd, Args: args, CallbackQuery: qry}
+	return &Callback{ChatID: chatID, MsgID: MsgID, Cmd: cmd, Args: args, CallbackQuery: qry}
 }
 
 // NewMessageWithButton creates a new text message with buttons (eg. refresh button)

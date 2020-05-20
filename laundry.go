@@ -430,7 +430,7 @@ func makeLaundryRefreshButton() tgbotapi.InlineKeyboardMarkup {
 	)
 }
 
-func (cb *Cinnabot) LaundryRefresh(qry *callback) {
+func (cb *Cinnabot) LaundryRefresh(qry *Callback) {
 	text := laundryMsg()
 	refreshButton := makeLaundryRefreshButton()
 	toSend := EditedMessageWithButton(text, refreshButton, qry.ChatID, qry.MsgID)

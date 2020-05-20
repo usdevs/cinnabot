@@ -210,7 +210,7 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 }
 
 //NUSBusRefresh is an inline button handler that updates bus timings in the message text
-func (cb *Cinnabot) NUSBusRefresh(qry *callback) {
+func (cb *Cinnabot) NUSBusRefresh(qry *Callback) {
 	code := qry.GetArgString()
 	responseString, ok := getLocationTimings(code)
 	if !ok {
@@ -223,7 +223,7 @@ func (cb *Cinnabot) NUSBusRefresh(qry *callback) {
 }
 
 //NUSBusHome updates the inline keyboard to a bus stop selector keyboard
-func (cb *Cinnabot) NUSBusHome(qry *callback) {
+func (cb *Cinnabot) NUSBusHome(qry *Callback) {
 	return // To be implemented if bus times is migrated to inline keyboard
 }
 
