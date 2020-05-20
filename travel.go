@@ -44,16 +44,16 @@ var locations = map[string][]string{
 }
 
 // Structs for BusTiming
-type BusTimes struct {
-	Services []Service `json:"Services"`
+type busTimes struct {
+	Services []service `json:"Services"`
 }
 
-type Service struct {
+type service struct {
 	ServiceNum string  `json:"ServiceNo"`
-	Next       NextBus `json:"NextBus"`
+	Next       nextBus `json:"NextBus"`
 }
 
-type NextBus struct {
+type nextBus struct {
 	EstimatedArrival string `json:"EstimatedArrival"`
 }
 
@@ -86,25 +86,25 @@ func (cb *Cinnabot) BusTimings(msg *message) {
 	return
 }
 
-func makeHeap(loc tgbotapi.Location) BusStopHeap {
+func makeHeap(loc tgbotapi.Location) busStopHeap {
 	//resp, _ := http.Get("https://busrouter.sg/data/2/bus-stops.json")
 	responseData, _ := ioutil.ReadFile("publicstops.json")
-	points := []BusStop{}
+	points := []busStop{}
 	if err := json.Unmarshal(responseData, &points); err != nil {
 		log.Print(err)
 	}
-	BSH := BusStopHeap{points, loc}
+	BSH := busStopHeap{points, loc}
 	heap.Init(&BSH)
 	return BSH
 }
 
 //busTimingResponse returns string given a busstopheap
-func busTimingResponse(BSH *BusStopHeap) string {
+func busTimingResponse(BSH *busStopHeap) string {
 	returnMessage := "🤖: Here are the timings:\n\n"
 	//Iteratively get data for each closest bus stop.
 	for i := 0; i < 4; i++ {
 
-		busStop := heap.Pop(BSH).(BusStop)
+		busStop := heap.Pop(BSH).(busStop)
 
 		busStopCode := busStop.BusStopNumber
 
@@ -123,7 +123,7 @@ func busTimingResponse(BSH *BusStopHeap) string {
 			log.Print(err)
 		}
 
-		bt := BusTimes{}
+		bt := busTimes{}
 		if err := json.Unmarshal(responseData, &bt); err != nil {
 			log.Print(err)
 		}
@@ -141,14 +141,15 @@ func busTimingResponse(BSH *BusStopHeap) string {
 }
 
 //NUSBusTimes structs for unmarshalling
-type Response struct {
-	Result ServiceResult `json:"ShuttleServiceResult"`
-}
-type ServiceResult struct {
-	Shuttles []Shuttle `json:"shuttles"`
+type response struct {
+	Result serviceResult `json:"ShuttleServiceResult"`
 }
 
-type Shuttle struct {
+type serviceResult struct {
+	Shuttles []shuttle `json:"shuttles"`
+}
+
+type shuttle struct {
 	ArrivalTime     string `json:"arrivalTime"`
 	NextArrivalTime string `json:"nextArrivalTime"`
 	Name            string `json:"name"`
@@ -236,16 +237,16 @@ func makeNUSBusKeyboard(code string) tgbotapi.InlineKeyboardMarkup {
 }
 
 //makeNUSHeap returns a heap for NUS Bus timings
-func makeNUSHeap(loc tgbotapi.Location) BusStopHeap {
+func makeNUSHeap(loc tgbotapi.Location) busStopHeap {
 	responseData, err := ioutil.ReadFile("nusstops.json")
 	if err != nil {
 		log.Print(err)
 	}
-	points := []BusStop{}
+	points := []busStop{}
 	if err := json.Unmarshal(responseData, &points); err != nil {
 		log.Print(err)
 	}
-	BSH := BusStopHeap{points, loc}
+	BSH := busStopHeap{points, loc}
 	heap.Init(&BSH)
 	return BSH
 }
@@ -275,7 +276,7 @@ func getBusTimings(code, displayName string) string { // for location buttons
 	if err != nil {
 		log.Print(err)
 	}
-	var bt Response
+	var bt response
 	if err := json.Unmarshal(responseData, &bt); err != nil {
 		log.Print(err)
 	}
@@ -298,46 +299,46 @@ func getBusTimings(code, displayName string) string { // for location buttons
 	return returnMessage
 }
 
-func nusBusTimingResponse(BSH *BusStopHeap) string { // for location-based query
+func nusBusTimingResponse(BSH *busStopHeap) string { // for location-based query
 	lines := make([]string, 0)
 	lines = append(lines, "🤖: Here are the bus timings")
 	for i := 0; i < 3; i++ {
-		stop := heap.Pop(BSH).(BusStop)
+		stop := heap.Pop(BSH).(busStop)
 		lines = append(lines, getBusTimings(stop.BusStopNumber, stop.BusStopName))
 	}
 	return strings.Join(lines, "\n")
 }
 
-//BusStop models a public / nus bus stop
-type BusStop struct {
+//busStop models a public / nus bus stop
+type busStop struct {
 	BusStopNumber string `json:"no"`
 	Latitude      string `json:"lat"`
 	Longitude     string `json:"lng"`
 	BusStopName   string `json:"name"`
 }
 
-type BusStopHeap struct {
-	busStopList []BusStop
+type busStopHeap struct {
+	busStopList []busStop
 	location    tgbotapi.Location
 }
 
-func (h BusStopHeap) Len() int {
+func (h busStopHeap) Len() int {
 	return len(h.busStopList)
 }
 
-func (h BusStopHeap) Less(i, j int) bool {
+func (h busStopHeap) Less(i, j int) bool {
 	return distanceBetween2(h.location, h.busStopList[i]) < distanceBetween2(h.location, h.busStopList[j])
 }
 
-func (h BusStopHeap) Swap(i, j int) {
+func (h busStopHeap) Swap(i, j int) {
 	h.busStopList[i], h.busStopList[j] = h.busStopList[j], h.busStopList[i]
 }
 
-func (h *BusStopHeap) Push(x interface{}) {
-	h.busStopList = append(h.busStopList, x.(BusStop))
+func (h *busStopHeap) Push(x interface{}) {
+	h.busStopList = append(h.busStopList, x.(busStop))
 }
 
-func (h *BusStopHeap) Pop() interface{} {
+func (h *busStopHeap) Pop() interface{} {
 	oldh := h.busStopList
 	n := len(oldh)
 	x := oldh[n-1]
@@ -346,7 +347,7 @@ func (h *BusStopHeap) Pop() interface{} {
 	return x
 }
 
-func distanceBetween2(Loc1 tgbotapi.Location, Loc2 BusStop) float64 {
+func distanceBetween2(Loc1 tgbotapi.Location, Loc2 busStop) float64 {
 
 	loc2Lat, _ := strconv.ParseFloat(Loc2.Latitude, 32)
 	loc2Lon, _ := strconv.ParseFloat(Loc2.Longitude, 32)
