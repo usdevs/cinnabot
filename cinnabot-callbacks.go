@@ -64,6 +64,22 @@ func (cb *Cinnabot) parseCallback(qry *tgbotapi.CallbackQuery) *callback {
 	return &callback{ChatID: chatID, MsgID: MsgID, Cmd: cmd, Args: args, CallbackQuery: qry}
 }
 
+// NewMessageWithButton creates a new text message with buttons (eg. refresh button)
+func NewMessageWithButton(text string, keyboard tgbotapi.InlineKeyboardMarkup, chatID int64) tgbotapi.MessageConfig {
+	msg := tgbotapi.NewMessage(chatID, text)
+	msg.ParseMode = tgbotapi.ModeMarkdown
+	msg.ReplyMarkup = &keyboard
+	return msg
+}
+
+// EditedMessageWithButton creates an edited text message with buttons (eg. refresh button)
+func EditedMessageWithButton(text string, keyboard tgbotapi.InlineKeyboardMarkup, chatID int64, msgID int) tgbotapi.EditMessageTextConfig {
+	msg := tgbotapi.NewEditMessageText(chatID, msgID, text)
+	msg.ParseMode = tgbotapi.ModeMarkdown
+	msg.ReplyMarkup = &keyboard
+	return msg
+}
+
 // InitCinnabot initializes an instance of Cinnabot.
 // func InitCinnabotPatch(configJSON []byte, lg *log.Logger) *Cinnabot {
 // 	if lg == nil {
