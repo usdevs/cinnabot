@@ -31,7 +31,7 @@ var aliases = map[string]string{
 
 // groups of locations that should be returned together
 var locations = map[string][]string{
-	"utown":     {"UTOWN"},
+	"utown":     {"UTown"},
 	"science":   {"S17", "LT27"},
 	"kr-mrt":    {"KR-MRT", "KR-MRT-OPP"},
 	"mpsh":      {"STAFFCLUB", "STAFFCLUB-OPP"},
@@ -57,7 +57,7 @@ type NextBus struct {
 	EstimatedArrival string `json:"EstimatedArrival"`
 }
 
-//BusTimings checks the bus timings based on given location
+//BusTimings checks the public bus timings based on given location
 func (cb *Cinnabot) BusTimings(msg *message) {
 	if len(msg.Args) == 0 || !cb.CheckArgCmdPair("/publicbus", msg.Args) {
 		opt1 := tgbotapi.NewKeyboardButtonRow(tgbotapi.NewKeyboardButton("Cinnamon"))
@@ -283,17 +283,17 @@ func getLocationTimings(code string) (string, bool) {
 		lines := make([]string, 0)
 		lines = append(lines, "🤖: Here are the bus timings")
 		for _, loc := range locs {
-			lines = append(lines, getBusTimings(loc))
+			lines = append(lines, getBusTimings(loc, loc))
 		}
 		lines = append(lines, "Last updated: "+time.Now().Format(time.RFC822))
-		responseString = strings.Join(lines, "\n\n")
+		responseString = strings.Join(lines, "\n")
 	}
 	return responseString, ok
 }
 
-func getBusTimings(code string) string { // for location buttons
-	returnMessage := "*" + code + "*\n"
-	resp, _ := http.Get("https://nextbus.comfortdelgro.com.sg/eventservice.svc/Shuttleservice?busstopname=" + code)
+func getBusTimings(code, displayName string) string { // for location buttons
+	returnMessage := "*" + displayName + "*\n"
+	resp, _ := http.Get("https://better-nextbus.appspot.com/ShuttleService?busstopname=" + code)
 
 	responseData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -323,69 +323,13 @@ func getBusTimings(code string) string { // for location buttons
 }
 
 func nusBusTimingResponse(BSH *BusStopHeap) string { // for location-based query
-	returnMessage := "🤖: Here are the bus timings\n\n"
+	lines := make([]string, 0)
+	lines = append(lines, "🤖: Here are the bus timings")
 	for i := 0; i < 3; i++ {
-
 		stop := heap.Pop(BSH).(BusStop)
-
-		returnMessage += "*" + stop.BusStopName + "*\n"
-
-		resp, _ := http.Get("https://nextbus.comfortdelgro.com.sg/eventservice.svc/Shuttleservice?busstopname=" + stop.BusStopNumber)
-
-		responseData, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Print(err)
-		}
-		var bt Response
-		if err := json.Unmarshal(responseData, &bt); err != nil {
-			log.Print(err)
-		}
-		/**
-
-				var min int
-				var at string
-				for j := 0; j < len(bt.Result.Shuttles); j++ {
-					min = j
-					for k := j; k < len(bt.Result.Shuttles); k++ {
-						at = bt.Result.Shuttles[k].ArrivalTime
-						log.Print(at, bt.Result.Shuttles[k].Name)
-
-						if at == "-" {
-							continue
-						} else if at == "Arr" {
-							min = k
-							continue
-						}
-
-						val := strings.Compare(at, bt.Result.Shuttles[min].ArrivalTime)
-						if val == -1 {
-							log.Print("A")
-							min = k
-						}
-					}
-					bt.Result.Shuttles[j], bt.Result.Shuttles[min] = bt.Result.Shuttles[min], bt.Result.Shuttles[j]
-				}
-		        **/
-
-		for j := 0; j < len(bt.Result.Shuttles); j++ {
-			arrivalTime := bt.Result.Shuttles[j].ArrivalTime
-			nextArrivalTime := bt.Result.Shuttles[j].NextArrivalTime
-
-			if arrivalTime == "-" {
-				returnMessage += "🛑" + bt.Result.Shuttles[j].Name + " : - mins\n"
-				continue
-			} else if arrivalTime == "1" {
-				returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + " min, " + nextArrivalTime + " mins\n"
-			} else if arrivalTime == "Arr" {
-				returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + ", " + nextArrivalTime + " mins\n"
-			} else {
-				returnMessage += "🚍" + bt.Result.Shuttles[j].Name + " : " + arrivalTime + " mins, " + nextArrivalTime + " mins\n"
-			}
-		}
-
-		returnMessage += "\n"
+		lines = append(lines, getBusTimings(stop.BusStopNumber, stop.BusStopName))
 	}
-	return returnMessage
+	return strings.Join(lines, "\n")
 }
 
 //BusStop models a public / nus bus stop
