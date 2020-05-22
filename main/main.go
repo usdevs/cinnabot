@@ -34,7 +34,7 @@ func main() {
 
 	cb.AddFunction("/map", cb.NUSMap)
 	cb.AddFunction("/resources", cb.Resources)
-	cb.AddFunction("/publicbus", cb.BusTimings)
+	cb.AddFunction("/publicbus", cb.PublicBus)
 	cb.AddFunction("/nusbus", cb.NUSBus)
 	cb.AddFunction("/weather", cb.Weather)
 	cb.AddFunction("/map", cb.NUSMap)
@@ -52,8 +52,8 @@ func main() {
 	cb.AddFunction("/cancel", cb.Cancel)
 
 	// Callback handlers
-	cb.AddHandler("//nusbus_refresh", cb.NUSBusRefresh)
-	cb.AddHandler("//nusbus_loc_refresh", cb.NUSBusLocationRefresh)
+	cb.AddHandler("//nusbus_refresh", cb.NUSBusRefresh_Buttons)
+	cb.AddHandler("//nusbus_loc_refresh", cb.NUSBusRefresh_Location)
 	cb.AddHandler("//publicbus_refresh", cb.PublicBusRefresh)
 	cb.AddHandler("//laundry_refresh", cb.LaundryRefresh)
 
