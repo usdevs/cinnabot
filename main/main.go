@@ -54,6 +54,7 @@ func main() {
 	// Callback handlers
 	cb.AddHandler("//nusbus_refresh", cb.NUSBusRefresh)
 	cb.AddHandler("//nusbus_loc_refresh", cb.NUSBusLocationRefresh)
+	cb.AddHandler("//publicbus_refresh", cb.PublicBusRefresh)
 	cb.AddHandler("//laundry_refresh", cb.LaundryRefresh)
 
 	updates := cb.Listen(60)

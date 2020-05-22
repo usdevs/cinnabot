@@ -83,8 +83,22 @@ func (cb *Cinnabot) BusTimings(msg *message) {
 	}
 	//Returns a heap of busstop data (sorted)
 	BSH := makeHeap(*loc)
-	cb.SendTextMessage(int(msg.Chat.ID), busTimingResponse(&BSH))
-	return
+	responseString := busTimingResponse(&BSH)
+	responseKeyboard := makePublicBusKeyboard(*loc)
+	response := NewMessageWithButton(responseString, responseKeyboard, msg.Chat.ID)
+	cb.SendMessage(response)
+}
+
+func (cb *Cinnabot) PublicBusRefresh(qry *Callback) {
+	long,_ := strconv.ParseFloat(qry.Args[0], 64)
+	lat,_ := strconv.ParseFloat(qry.Args[1], 64)
+
+	loc := tgbotapi.Location{Longitude: long, Latitude: lat}
+	BSH := makeHeap(loc)
+	responseString := busTimingResponse(&BSH)
+	responseKeyboard := makePublicBusKeyboard(loc)
+	response := EditedMessageWithButton(responseString, responseKeyboard, qry.ChatID, qry.MsgID)
+	cb.SendMessage(response)
 }
 
 func makeHeap(loc tgbotapi.Location) busStopHeap {
@@ -101,7 +115,8 @@ func makeHeap(loc tgbotapi.Location) busStopHeap {
 
 //busTimingResponse returns string given a busstopheap
 func busTimingResponse(BSH *busStopHeap) string {
-	returnMessage := "🤖: Here are the timings:\n\n"
+	lines := make([]string, 0)
+	lines = append(lines, "🤖: Here are the bus timings")
 	//Iteratively get data for each closest bus stop.
 	for i := 0; i < 4; i++ {
 
@@ -109,7 +124,7 @@ func busTimingResponse(BSH *busStopHeap) string {
 
 		busStopCode := busStop.BusStopNumber
 
-		returnMessage += "*" + busStop.BusStopName + "*\n"
+		lines = append(lines, "*" + busStop.BusStopName + "*")
 
 		//Send request to my transport sg for bus timing data
 		client := &http.Client{}
@@ -134,11 +149,13 @@ func busTimingResponse(BSH *busStopHeap) string {
 			layout := "2006-01-02T15:04:05-07:00"
 			t, _ := time.Parse(layout, arrivalTime)
 			duration := int(t.Sub(time.Now()).Minutes())
-			returnMessage += "🚍Bus " + bt.Services[j].ServiceNum + " : " + strconv.Itoa(duration+1) + " minutes\n"
+			s := "🚍Bus " + bt.Services[j].ServiceNum + " : " + strconv.Itoa(duration+1) + " minutes"
+			lines = append(lines, s)
 		}
-		returnMessage += "\n"
+		lines = append(lines, "")
 	}
-	return returnMessage
+	lines = append(lines, "Last updated: "+time.Now().Format(time.RFC822))
+	return strings.Join(lines, "\n")
 }
 
 //NUSBusTimes structs for unmarshalling
