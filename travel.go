@@ -3,6 +3,7 @@ package cinnabot
 import (
 	"container/heap"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"math"
@@ -188,7 +189,9 @@ func (cb *Cinnabot) NUSBus(msg *message) {
 		//Returns a heap of busstop data (sorted)
 		BSH := makeNUSHeap(*loc)
 		responseString := nusBusTimingResponse(&BSH)
-		cb.SendTextMessage(int(msg.Chat.ID), responseString)
+		responseKeyboard := makeNUSBusKeyboardForLocation(*loc)
+		response := NewMessageWithButton(responseString, responseKeyboard, msg.Chat.ID)
+		cb.SendMessage(response)
 		return
 	}
 
@@ -223,6 +226,18 @@ func (cb *Cinnabot) NUSBusRefresh(qry *Callback) {
 	cb.SendMessage(msg)
 }
 
+func (cb *Cinnabot) NUSBusLocationRefresh(qry *Callback) {
+	long,_ := strconv.ParseFloat(qry.Args[0], 64)
+	lat,_ := strconv.ParseFloat(qry.Args[1], 64)
+
+	loc := tgbotapi.Location{Longitude: long, Latitude: lat}
+	heap := makeNUSHeap(loc)
+	responseString := nusBusTimingResponse(&heap)
+	responseKeyboard := makeNUSBusKeyboardForLocation(loc)
+	response := EditedMessageWithButton(responseString, responseKeyboard, qry.ChatID, qry.MsgID)
+	cb.SendMessage(response)
+}
+
 //NUSBusHome updates the inline keyboard to a bus stop selector keyboard
 func (cb *Cinnabot) NUSBusHome(qry *Callback) {
 	return // To be implemented if bus times is migrated to inline keyboard
@@ -232,6 +247,22 @@ func makeNUSBusKeyboard(code string) tgbotapi.InlineKeyboardMarkup {
 	return tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Refresh", "//nusbus_refresh "+code),
+		),
+	)
+}
+
+func makeNUSBusKeyboardForLocation(loc tgbotapi.Location) tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Refresh", fmt.Sprintf("//nusbus_loc_refresh %f %f", loc.Longitude, loc.Latitude)),
+		),
+	)
+}
+
+func makePublicBusKeyboard(loc tgbotapi.Location) tgbotapi.InlineKeyboardMarkup {
+	return tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("Refresh", fmt.Sprintf("//publicbus_refresh %f %f", loc.Longitude, loc.Latitude)),
 		),
 	)
 }
@@ -251,8 +282,8 @@ func makeNUSHeap(loc tgbotapi.Location) busStopHeap {
 	return BSH
 }
 
+// Get a list of bus stop codes from a location code (for button-based query)
 func getLocationTimings(code string) (string, bool) {
-	// Get a list of bus stop codes from a location code
 	responseString := ""
 	locs, ok := locations[code]
 	if ok {
@@ -268,7 +299,20 @@ func getLocationTimings(code string) (string, bool) {
 	return responseString, ok
 }
 
-func getBusTimings(code, displayName string) string { // for location buttons
+// for location-based query
+func nusBusTimingResponse(BSH *busStopHeap) string {
+	lines := make([]string, 0)
+	lines = append(lines, "🤖: Here are the bus timings")
+	for i := 0; i < 3; i++ {
+		stop := heap.Pop(BSH).(busStop)
+		lines = append(lines, getBusTimings(stop.BusStopNumber, stop.BusStopName))
+	}
+	lines = append(lines, "Last updated: "+time.Now().Format(time.RFC822))
+	return strings.Join(lines, "\n")
+}
+
+// fetch NUS bus timings from web API
+func getBusTimings(code, displayName string) string {
 	returnMessage := "*" + displayName + "*\n"
 	resp, _ := http.Get("https://better-nextbus.appspot.com/ShuttleService?busstopname=" + code)
 
@@ -297,16 +341,6 @@ func getBusTimings(code, displayName string) string { // for location buttons
 		}
 	}
 	return returnMessage
-}
-
-func nusBusTimingResponse(BSH *busStopHeap) string { // for location-based query
-	lines := make([]string, 0)
-	lines = append(lines, "🤖: Here are the bus timings")
-	for i := 0; i < 3; i++ {
-		stop := heap.Pop(BSH).(busStop)
-		lines = append(lines, getBusTimings(stop.BusStopNumber, stop.BusStopName))
-	}
-	return strings.Join(lines, "\n")
 }
 
 //busStop models a public / nus bus stop
