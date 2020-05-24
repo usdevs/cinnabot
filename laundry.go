@@ -430,21 +430,17 @@ func makeLaundryRefreshButton() tgbotapi.InlineKeyboardMarkup {
 	)
 }
 
-func (cb *Cinnabot) LaundryRefresh(qry *callback) {
+func (cb *Cinnabot) LaundryRefresh(qry *Callback) {
 	text := laundryMsg()
 	refreshButton := makeLaundryRefreshButton()
-	msg := tgbotapi.NewEditMessageText(qry.ChatID, qry.MsgID, text)
-	msg.ParseMode = tgbotapi.ModeMarkdown
-	msg.ReplyMarkup = &refreshButton
-	cb.SendMessage(msg)
+	toSend := EditedMessageWithButton(text, refreshButton, qry.ChatID, qry.MsgID)
+	cb.SendMessage(toSend)
 }
 
 // Laundry checks the washer and dryer availability.
 func (cb *Cinnabot) Laundry(msg *message) {
 	text := laundryMsg()
 	refreshButton := makeLaundryRefreshButton()
-	newMsg := tgbotapi.NewMessage(msg.Chat.ID, text)
-	newMsg.ParseMode = tgbotapi.ModeMarkdown
-	newMsg.ReplyMarkup = &refreshButton
-	cb.SendMessage(newMsg)
+	toSend := NewMessageWithButton(text, refreshButton, msg.Chat.ID)
+	cb.SendMessage(toSend)
 }
