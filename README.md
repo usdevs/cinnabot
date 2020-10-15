@@ -37,13 +37,13 @@ sudo apt install git
 brew install git
 ```
 
-Then, install Golang by [downloading from the official website](https://golang.org/dl/).
+Then, install Golang **version 1.15**. You can either [download it from the official website](https://golang.org/dl/) or download it using a package manager (remember to check the go version provided by the package manager).
 
-For Linux systems, you can follow the steps below after downloading:
+For Linux systems, you can follow the steps if you downloaded go from the website:
 
 ```bash
 cd Downloads # or wherever you downloaded the file
-sudo tar -C /usr/local -xzf go1.12.7.linux-amd64.tar.gz
+sudo tar -C /usr/local -xzf go1.15.2.linux-amd64.tar.gz
 # change the lines below to the shell you are using
 echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.bashrc
 source ~/.bashrc
@@ -51,45 +51,18 @@ source ~/.bashrc
 
 To verify that Golang is installed properly:
 ```bash
-$ which go
-/usr/local/go/bin/go
+$ which go # only for Mac/Linux
+/usr/local/go/bin/go # it's okay for this to differ, it just shouldn't be blank
 $ go version
-go version go1.12.7 linux/amd64 # version, operating system/architecture
+go version go1.15.2 linux/amd64 # version, operating system/architecture
 ```
 
-### 1. Set the environment variables
+### 1. Clone the cinnabot repository
 
-All your Go projects should go under a folder called `GOPATH`. We first have to tell your machine 
-where that is, by setting up this path in your environment variables. 
-
-Follow the official guide [here](https://github.com/golang/go/wiki/SettingGOPATH).
-
-For Linux and MacOS users, follow the section under *UNIX Systems*. If you are not sure which shell you are using, enter `$0` into your command line.
-
-You can also follow the steps below:
-#### Bash (if you are not sure, you are most likely using BASH)
+Go the the directory where you want to store the cinnabot code, and run this command to download the cinnabot repository into a new directory called 'cinnabot': 
 ```bash
-echo "export GOPATH=$HOME/go" >> ~/.bashrc
-source ~/.bashrc
-```
-
-#### Zsh
-```bash
-echo "export GOPATH=$HOME/go" >> ~/.zshrc
-source ~/.zshrc
-```
-
-At this stage, you can verify that Golang and `GOPATH` are set up properly by:
-```bash
-$ echo $GOPATH
-/home/your_username/go # default GOPATH
-```
-
-### 2. Create your Go workspace
-
-Run this command to download the cinnabot project and its dependencies. 
-```
-go get -u -t -v github.com/usdevs/cinnabot
+git clone https://github.com/usdevs/cinnabot.git 
+# or git@github.com:usdevs/cinnabot.git if you are using a ssh key
 ```
 Voila! Now we have cinnabot on our machine. Ready to go!! :tada:
 
@@ -100,10 +73,6 @@ Overview:
 2. [Running a test bot on Telegram](#2-running-a-test-bot-on-telegram)
 
 **All instructions below assume you are at the cinnabot root path, unless stated otherwise.**
-```bash
-$ pwd
-/path/to/gopath/src/github.com/usdevs/cinnabot
-```
 
 ### 1. Register for an API Token with Botfather
 Ask for the blessings of the Botfather [here](https://t.me/botfather), as you register for one of the bots.
